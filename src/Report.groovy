@@ -30,8 +30,8 @@ private static ArrayList<ReportGZHI> parseToObject(Collection data) {
 
 private static void updateProperties(ArrayList data, nameField, ArrayList dataObject) {
     for (int j = 0; j < data.size(); j++) {
-        ReportGZHI reportGZHI = data[j] as ReportGZHI
-        LinkedHashMap<String, Object> properties = reportGZHI.properties as LinkedHashMap<String, Object>
+        var reportGZHI = data[j] as ReportGZHI
+        var properties = reportGZHI.properties as LinkedHashMap<String, Object>
         for (Map.Entry<String, Object> objectEntry : properties.entrySet()) {
             if (objectEntry.key.equals(nameField)) {
                 reportGZHI.setProperty(objectEntry.key, dataObject[j]);
@@ -42,7 +42,8 @@ private static void updateProperties(ArrayList data, nameField, ArrayList dataOb
 
 private static ArrayList<ReportGZHI> prepareResultReport(Collection data) {
     ArrayList<ReportGZHI> prepareList = new ArrayList()
-    for (int i = 0; i < data[0]["data"].size(); i++) {
+    def prepareDataCountItems = data[0]["data"] as ArrayList
+    for (int i = 0; i < prepareDataCountItems.size(); i++) {
         prepareList.add(new ReportGZHI())
     }
     return prepareList
