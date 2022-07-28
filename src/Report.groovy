@@ -1,19 +1,52 @@
 import groovy.json.JsonSlurper
 
 def jsonSlurper = new JsonSlurper()
-String url = System.getenv("urlReport")
-def json = jsonSlurper.parseText(new URL(url).text)
-def list = new ArrayList()
-def report = new ReportGZHI();
+
+// reading data from url
+//String url = System.getenv("urlReport")
+//def json = jsonSlurper.parseText(new URL(url).text)
+
+//write to [test]-output.json
+//new File("output.json").write(JsonOutput.prettyPrint(new URL(url).text))
+
+//reading data from [test]-output.json
+def json = jsonSlurper.parse(new File("output.json"))
 
 if (json["error"] == 0) {
-    list = json["fields"].collect()
-
+    ArrayList data = json["fields"].collect()
+    ArrayList<ReportGZHI> result = parseToObject(data)
+    println("Result")
 }
 
-list.size().println()
+private static ArrayList<ReportGZHI> parseToObject(Collection data) {
+    ArrayList<ReportGZHI> resultReport = prepareResultReport(data)
+    for (int i = 0; i < data.size(); i++) {
+        def nameField = data[i]["name"]
+        ArrayList dataObject = data[i]["data"] as ArrayList
+        updateProperties(resultReport, nameField, dataObject)
+    }
+    return resultReport
+}
 
-println("Result")
+private static void updateProperties(ArrayList resultReport, nameField, ArrayList dataObject) {
+    for (int j = 0; j < resultReport.size(); j++) {
+        ReportGZHI reportGZHI = resultReport[j] as ReportGZHI
+        LinkedHashMap<String, Object> properties = reportGZHI.properties as LinkedHashMap<String, Object>
+        for (Map.Entry<String, Object> objectEntry : properties.entrySet()) {
+            if (objectEntry.key.equals(nameField)) {
+                reportGZHI.setProperty(objectEntry.key, dataObject[j]);
+            }
+        }
+    }
+}
+
+private static ArrayList<ReportGZHI> prepareResultReport(Collection data) {
+    ArrayList<ReportGZHI> prepareList = new ArrayList()
+    for (int i = 0; i < data[0]["data"].size(); i++) {
+        prepareList.add(new ReportGZHI())
+    }
+    return prepareList
+}
 
 class ReportGZHI {
     var accost_no //displayname -> Номер обращения [datatype -> string]
