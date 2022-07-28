@@ -28,9 +28,9 @@ private static ArrayList<ReportGZHI> parseToObject(Collection data) {
     return resultReport
 }
 
-private static void updateProperties(ArrayList resultReport, nameField, ArrayList dataObject) {
-    for (int j = 0; j < resultReport.size(); j++) {
-        ReportGZHI reportGZHI = resultReport[j] as ReportGZHI
+private static void updateProperties(ArrayList data, nameField, ArrayList dataObject) {
+    for (int j = 0; j < data.size(); j++) {
+        ReportGZHI reportGZHI = data[j] as ReportGZHI
         LinkedHashMap<String, Object> properties = reportGZHI.properties as LinkedHashMap<String, Object>
         for (Map.Entry<String, Object> objectEntry : properties.entrySet()) {
             if (objectEntry.key.equals(nameField)) {
