@@ -1,5 +1,7 @@
 import groovy.json.JsonSlurper
 
+import java.util.stream.Collectors
+
 def jsonSlurper = new JsonSlurper()
 
 // reading data from url
@@ -15,6 +17,7 @@ def json = jsonSlurper.parse(new File("output.json"))
 if (json["error"] == 0) {
     ArrayList data = json["fields"].collect()
     ArrayList<ReportGZHI> result = parseToObject(data)
+    def collect = result.stream().filter(e -> e.inspection_date != null && e.prescr_date != null).collect(Collectors.toList())
     println("Result")
 }
 
