@@ -3,6 +3,10 @@ import groovy.json.JsonSlurper
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import groovy.transform.Field
+
+@Field final String DATE_FORMAT = "dd.MM.yyyy"
+@Field final String DATE_TIME_FORMAT = "dd.MM.yyyy HH:mm"
 
 def jsonSlurper = new JsonSlurper()
 
@@ -46,7 +50,7 @@ if (json["error"] == 0) {
 //    logger.error(result.size.toString())
 }
 
-private static ArrayList<ReportGZHI> parseToObject(Collection data) {
+private ArrayList<ReportGZHI> parseToObject(Collection data) {
     ArrayList<ReportGZHI> resultReport = prepareResultReport(data)
     for (int i = 0; i < data.size(); i++) {
         def nameField = data[i]["name"]
@@ -57,7 +61,7 @@ private static ArrayList<ReportGZHI> parseToObject(Collection data) {
     return resultReport
 }
 
-private static void updateProperties(ArrayList data, nameField, ArrayList dataObject, datatype) {
+private void updateProperties(ArrayList data, nameField, ArrayList dataObject, datatype) {
     for (int j = 0; j < data.size(); j++) {
         ReportGZHI reportGZHI = data[j]
         LinkedHashMap<String, Object> properties = reportGZHI.properties
@@ -80,15 +84,15 @@ private static void updateProperties(ArrayList data, nameField, ArrayList dataOb
     }
 }
 
-private static Date parseDateFromString(obj) {
-    Date.parse("dd.MM.yyyy", LocalDate.parse(obj.toString()).format(DateTimeFormatter.ofPattern("dd.MM.yyyy")).toString())
+private Date parseDateFromString(obj) {
+    Date.parse(DATE_FORMAT, LocalDate.parse(obj.toString()).format(DateTimeFormatter.ofPattern(DATE_FORMAT)).toString())
 }
 
-private static Date parseDateTimeFromString(obj) {
-    Date.parse("dd.MM.yyyy HH:mm", LocalDateTime.parse(obj.toString().replaceAll("\\s", "T")).format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")).toString())
+private Date parseDateTimeFromString(obj) {
+    Date.parse(DATE_TIME_FORMAT, LocalDateTime.parse(obj.toString().replaceAll("\\s", "T")).format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT)).toString())
 }
 
-private static ArrayList<ReportGZHI> prepareResultReport(Collection data) {
+private ArrayList<ReportGZHI> prepareResultReport(Collection data) {
     ArrayList<ReportGZHI> prepareList = new ArrayList()
     def prepareDataCountItems = data[0]["data"] as ArrayList
     for (int i = 0; i < prepareDataCountItems.size(); i++) {
