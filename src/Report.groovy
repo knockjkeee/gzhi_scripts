@@ -2,6 +2,7 @@ import groovy.json.JsonSlurper
 
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 def jsonSlurper = new JsonSlurper()
 
@@ -51,23 +52,24 @@ private static ArrayList<ReportGZHI> parseToObject(Collection data) {
         def nameField = data[i]["name"]
         def datatype = data[i]["datatype"]
         ArrayList dataObject = data[i]["data"] as ArrayList
-        updateProperties(resultReport, nameField, dataObject, datatype, i)
+        updateProperties(resultReport, nameField, dataObject, datatype)
     }
     return resultReport
 }
 
-private static void updateProperties(ArrayList data, nameField, ArrayList dataObject, datatype, i) {
+private static void updateProperties(ArrayList data, nameField, ArrayList dataObject, datatype) {
     for (int j = 0; j < data.size(); j++) {
         ReportGZHI reportGZHI = data[j]
         LinkedHashMap<String, Object> properties = reportGZHI.properties
         for (Map.Entry<String, Object> objectEntry : properties.entrySet()) {
-            if (objectEntry.key.equals(nameField)) {
-                if (datatype.equals("date") && dataObject[j] != null) {
-                    def parseToDate;
-                    if (dataObject[j].toString().length() == 10) {
-                        parseToDate = Date.parse("dd.MM.yyyy", LocalDate.parse(dataObject[j]).format("dd.MM.yyyy").toString())
+            if (objectEntry.key == nameField) {
+                if (datatype == "date" && dataObject[j] != null) {
+                    Date parseToDate;
+                    def obj = dataObject[j]
+                    if (obj.toString().length() == 10) {
+                        parseToDate = parseDateFromString(obj)
                     } else {
-                        parseToDate = Date.parse("dd.MM.yyyy HH:mm", LocalDateTime.parse(dataObject[j].replaceAll("\\s", "T")).format("dd.MM.yyyy HH:mm").toString())
+                        parseToDate = parseDateTimeFromString(obj)
                     }
                     reportGZHI.setProperty(objectEntry.key, parseToDate);
                 } else {
@@ -76,6 +78,14 @@ private static void updateProperties(ArrayList data, nameField, ArrayList dataOb
             }
         }
     }
+}
+
+private static Date parseDateFromString(obj) {
+    Date.parse("dd.MM.yyyy", LocalDate.parse(obj.toString()).format(DateTimeFormatter.ofPattern("dd.MM.yyyy")).toString())
+}
+
+private static Date parseDateTimeFromString(obj) {
+    Date.parse("dd.MM.yyyy HH:mm", LocalDateTime.parse(obj.toString().replaceAll("\\s", "T")).format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")).toString())
 }
 
 private static ArrayList<ReportGZHI> prepareResultReport(Collection data) {
