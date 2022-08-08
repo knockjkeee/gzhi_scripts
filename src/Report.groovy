@@ -1,9 +1,13 @@
 import groovy.json.JsonSlurper
 
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import groovy.transform.Field
+import java.util.logging.Logger
+
+Logger logger = Logger.getLogger("")
 
 @Field final String DATE_FORMAT = "dd.MM.yyyy"
 @Field final String DATE_TIME_FORMAT = "dd.MM.yyyy HH:mm"
@@ -48,8 +52,6 @@ enum MappingReport{
     }
 
 }
-
-
 
 class ReportGZHI {
     String accost_no //displayname -> Номер обращения [datatype -> string]      ::       title
@@ -135,25 +137,54 @@ private Date parseDateTimeFromString(obj) {
     Date.parse(DATE_TIME_FORMAT, LocalDateTime.parse(obj.toString().replaceAll("\\s", "T")).format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT)).toString())
 }
 
-private void updateReportInDB(ArrayList<ReportGZHI> result) {
-    for (ReportGZHI reportGZHI : result) {
+private void updateReportInDB(ArrayList<ReportGZHI> list) {
+    def mapping = MappingReport.getMappingFields()
+    for (ReportGZHI reportGZHI : list) {
         if (reportGZHI.accost_no != null) {
-            println(reportGZHI.accost_no)
+            def obj = utils.find('appeal', [title: reportGZHI.accost_no])[0]
+            if (obj != null){
+                def uuid = obj.UUID
+                Map<Object, Object> updateData = new HashMap<>()
+                LinkedHashMap<String, Object> properties  = reportGZHI.properties
+                for (Map.Entry<String, Object> map: properties.entrySet() ) {
+                    if (map.value != null) {
+                        for (Map.Entry<String, Object> props : mapping.entrySet()) {
+                            if (props.key == map.key) {
+                                if (props.key == map.key) {
+                                    if(props.key == "prikazIsp") {
+                                        updatePrikazIspFIO(reportGZHI, obj)
+                                    }else {
+                                        updateData.put(props.value, map.value)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                utils.edit(uuid, updateData)
+                logger.info(obj.title +" "+ uuid + " updated from rtk report")
+            }
+
+            //testRun(list, mapping)
+
         }
     }
 }
 
-if (json["error"] == 0) {
-    ArrayList data = json["fields"].collect()
-    ArrayList<ReportGZHI> result = parseToObject(data)
-    updateReportInDB(result)
-//    println(result[1].toString())
+private void updatePrikazIspFIO(ReportGZHI reportGZHI, obj) {
+    def splitFIO = reportGZHI.creator_fio.split(" ")
+    Map<Object, Object> updateFIO = new HashMap<>()
+    updateFIO.put("lastName", splitFIO[0])
+    updateFIO.put("firstName", splitFIO[1])
+    updateFIO.put("middleName", splitFIO[2])
+    utils.edit(obj.prikazIsp.UUID, updateFIO)
+}
 
-    def mapping = MappingReport.getMappingFields()
-    def report = result[15]
+private void testRun(ArrayList<ReportGZHI> list, Map<String, String> mapping) {
+    def report = list[15]
     Map<Object, Object> updateData = new HashMap<>()
-    LinkedHashMap<String, Object> properties  = report.properties
-    for (Map.Entry<String, Object> map: properties.entrySet() ) {
+    LinkedHashMap<String, Object> properties = report.properties
+    for (Map.Entry<String, Object> map : properties.entrySet()) {
         if (map.value != null) {
             for (Map.Entry<String, Object> props : mapping.entrySet()) {
                 if (props.key == map.key) {
@@ -162,9 +193,17 @@ if (json["error"] == 0) {
             }
         }
     }
-
-
     println(updateData)
     println(mapping)
-//    logger.error(result.size.toString())
+}
+
+//def json = jsonSlurper.parseText(new URL(URL).text)
+if (json["error"] == 0) {
+    ArrayList data = json["fields"].collect()
+    ArrayList<ReportGZHI> result = parseToObject(data)
+    updateReportInDB(result)
+    //return result.size
+    logger.info("Всего обработано: " + result.size.toString() + " обращений")
+}else{
+    logger.error("Ошибки при чтении данных с сервиса РТК,  " + json["error"])
 }
