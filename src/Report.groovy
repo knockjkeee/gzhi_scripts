@@ -7,33 +7,74 @@ import groovy.transform.Field
 
 @Field final String DATE_FORMAT = "dd.MM.yyyy"
 @Field final String DATE_TIME_FORMAT = "dd.MM.yyyy HH:mm"
+@Field final String URL = "" //TODO insert url report rtk
 
 def jsonSlurper = new JsonSlurper()
 
-class ReportGZHI {
-    String accost_no //displayname -> Номер обращения [datatype -> string]
-    Date instruction_date //displayname -> дата приказа [datatype -> date]
-    Float icnt //displayname -> количество приказов [datatype -> float]
-    String creator_fio //displayname -> исполнитель из приказа [datatype -> string]
-    String instruction_num //displayname -> Номера приказов [datatype -> string]
-    String act_num //displayname -> Номера актов [datatype -> string]
-    Date inspection_date //displayname -> дата акта [datatype -> date]
-    Float acnt //displayname -> количество актов проверки [datatype -> float]
-    Date prescr_date //displayname -> дата предписания [datatype -> date]
-    Float pcnt //displayname -> количество предписаний [datatype -> float]
-    Date protocol_date //displayname -> дата протокола [datatype -> date]
-    Float dcnt //displayname -> количество протоколов [datatype -> float]
-    Date instruction_date2 //displayname -> дата приказа ПП [datatype -> date]
-    Float icnt2 //displayname -> количество приказов ПП [datatype -> float]
-    Date inspection_date2 //displayname -> дата акта ПП [datatype -> date]
-    Float acnt2 //displayname -> количество актов ПП [datatype -> float]
-    Date prescr_date2 //displayname -> дата предписания ПП [datatype -> date]
-    Float pcnt2 //displayname -> количество предписаний ПП [datatype -> float]
-    Date protocol_date2 //displayname -> дата протокола ПП [datatype -> date]
-    Float dcnt2 //displayname -> количество протоколов ПП [datatype -> float]
+enum MappingReport{
+    accost_no("accost_no","title"),
+    instruction_date("instruction_date","prikazDate"),
+    icnt("icnt","prikazNum"),
+    creator_fio("creator_fio","prikazIsp"),
+    instruction_num("instruction_num","prikazNumbers"),
+    act_num("act_num","actNumbers"),
+    inspection_date("inspection_date","aktDate"),
+    acnt("acnt","aktNum"),
+    prescr_date("prescr_date","predpisDate"),
+    pcnt("pcnt","predpisNum"),
+    protocol_date("protocol_date","protokolDate"),
+    dcnt("dcnt","protkolNum"),
+    instruction_date2("instruction_date2","prkazPPDate"),
+    icnt2("icnt2","prkazPPNum"),
+    inspection_date2("inspection_date2","aktPPDate"),
+    acnt2("acnt2","aktPPNum"),
+    prescr_date2("prescr_date2","predpisPPDate"),
+    pcnt2("pcnt2","predpisPPNum"),
+    protocol_date2("protocol_date2","protokolPPDate"),
+    dcnt2("dcnt2","protokolPPNum"),
+
+    private def name;
+    private def desc;
+
+    MappingReport(String name, String desc) {
+        this.name = name
+        this.desc = desc
+    }
+
+    static Map<String, String> getMappingFields() {
+        def name = values()*.name
+        def decs = values()*.desc
+        return [ name, decs ].transpose().collectEntries();
+    }
+
 }
 
-// reading data from url
+
+
+class ReportGZHI {
+    String accost_no //displayname -> Номер обращения [datatype -> string]      ::       title
+    Date instruction_date //displayname -> дата приказа [datatype -> date]      ::       prikazDate
+    Float icnt //displayname -> количество приказов [datatype -> float]     ::      prikazNum
+    String creator_fio //displayname -> исполнитель из приказа [datatype -> string]     ::      prikazIsp
+    String instruction_num //displayname -> Номера приказов [datatype -> string]        ::  [NEW FIELD] prikazNumbers
+    String act_num //displayname -> Номера актов [datatype -> string]       ::  [NEW FIELD] actNumbers
+    Date inspection_date //displayname -> дата акта [datatype -> date]      ::      aktDate
+    Float acnt //displayname -> количество актов проверки [datatype -> float]       ::      aktNum
+    Date prescr_date //displayname -> дата предписания [datatype -> date]       ::      predpisDate
+    Float pcnt //displayname -> количество предписаний [datatype -> float]      ::      predpisNum
+    Date protocol_date //displayname -> дата протокола [datatype -> date]       ::      protokolDate
+    Float dcnt //displayname -> количество протоколов [datatype -> float]       ::      protkolNum
+    Date instruction_date2 //displayname -> дата приказа ПП [datatype -> date]      ::      prkazPPDate
+    Float icnt2 //displayname -> количество приказов ПП [datatype -> float]     ::      prkazPPNum
+    Date inspection_date2 //displayname -> дата акта ПП [datatype -> date]      ::      aktPPDate
+    Float acnt2 //displayname -> количество актов ПП [datatype -> float]        ::      aktPPNum
+    Date prescr_date2 //displayname -> дата предписания ПП [datatype -> date]       ::      predpisPPDate
+    Float pcnt2 //displayname -> количество предписаний ПП [datatype -> float]      ::      predpisPPNum
+    Date protocol_date2 //displayname -> дата протокола ПП [datatype -> date]       ::      protokolPPDate
+    Float dcnt2 //displayname -> количество протоколов ПП [datatype -> float]       ::      protokolPPNum
+}
+
+// reading data from url or change url from constant
 //String url = System.getenv("urlReport")
 //def json = jsonSlurper.parseText(new URL(url).text)
 
@@ -42,13 +83,6 @@ class ReportGZHI {
 
 //reading data from [test]-output.json
 def json = jsonSlurper.parse(new File("output.json"))
-
-if (json["error"] == 0) {
-    ArrayList data = json["fields"].collect()
-    ArrayList<ReportGZHI> result = parseToObject(data)
-    println(result[1].toString())
-//    logger.error(result.size.toString())
-}
 
 private ArrayList<ReportGZHI> parseToObject(Collection data) {
     ArrayList<ReportGZHI> resultReport = prepareResultReport(data)
@@ -59,6 +93,15 @@ private ArrayList<ReportGZHI> parseToObject(Collection data) {
         updateProperties(resultReport, nameField, dataObject, datatype)
     }
     return resultReport
+}
+
+private ArrayList<ReportGZHI> prepareResultReport(Collection data) {
+    ArrayList<ReportGZHI> prepareList = new ArrayList()
+    def prepareDataCountItems = data[0]["data"] as ArrayList
+    for (int i = 0; i < prepareDataCountItems.size(); i++) {
+        prepareList.add(new ReportGZHI())
+    }
+    return prepareList
 }
 
 private void updateProperties(ArrayList data, nameField, ArrayList dataObject, datatype) {
@@ -92,11 +135,36 @@ private Date parseDateTimeFromString(obj) {
     Date.parse(DATE_TIME_FORMAT, LocalDateTime.parse(obj.toString().replaceAll("\\s", "T")).format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT)).toString())
 }
 
-private ArrayList<ReportGZHI> prepareResultReport(Collection data) {
-    ArrayList<ReportGZHI> prepareList = new ArrayList()
-    def prepareDataCountItems = data[0]["data"] as ArrayList
-    for (int i = 0; i < prepareDataCountItems.size(); i++) {
-        prepareList.add(new ReportGZHI())
+private void updateReportInDB(ArrayList<ReportGZHI> result) {
+    for (ReportGZHI reportGZHI : result) {
+        if (reportGZHI.accost_no != null) {
+            println(reportGZHI.accost_no)
+        }
     }
-    return prepareList
+}
+
+if (json["error"] == 0) {
+    ArrayList data = json["fields"].collect()
+    ArrayList<ReportGZHI> result = parseToObject(data)
+    updateReportInDB(result)
+//    println(result[1].toString())
+
+    def mapping = MappingReport.getMappingFields()
+    def report = result[15]
+    Map<Object, Object> updateData = new HashMap<>()
+    LinkedHashMap<String, Object> properties  = report.properties
+    for (Map.Entry<String, Object> map: properties.entrySet() ) {
+        if (map.value != null) {
+            for (Map.Entry<String, Object> props : mapping.entrySet()) {
+                if (props.key == map.key) {
+                    updateData.put(props.value, map.value)
+                }
+            }
+        }
+    }
+
+
+    println(updateData)
+    println(mapping)
+//    logger.error(result.size.toString())
 }
