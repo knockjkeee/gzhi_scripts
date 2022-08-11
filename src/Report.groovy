@@ -15,7 +15,7 @@ Logger logger = Logger.getLogger("")
 
 def jsonSlurper = new JsonSlurper()
 
-enum MappingReport{
+enum MappingReportt{
     accost_no("accost_no","title"),
     instruction_date("instruction_date","prikazDate"),
     icnt("icnt","prikazNum"),
@@ -53,7 +53,7 @@ enum MappingReport{
 
 }
 
-class ReportGZHI {
+class ReportGZHII {
     String accost_no //displayname -> Номер обращения [datatype -> string]      ::       title
     Date instruction_date //displayname -> дата приказа [datatype -> date]      ::       prikazDate
     Float icnt //displayname -> количество приказов [datatype -> float]     ::      prikazNum
@@ -140,45 +140,45 @@ private Date parseDateTimeFromString(obj) {
 private void updateReportInDB(ArrayList<ReportGZHI> list) {
     def mapping = MappingReport.getMappingFields()
     for (ReportGZHI reportGZHI : list) {
-        if (reportGZHI.accost_no != null) {
-            def obj = utils.find('appeal', [title: reportGZHI.accost_no])[0]
-            if (obj != null){
-                def uuid = obj.UUID
-                Map<Object, Object> updateData = new HashMap<>()
-                LinkedHashMap<String, Object> properties  = reportGZHI.properties
-                for (Map.Entry<String, Object> map: properties.entrySet() ) {
-                    if (map.value != null) {
-                        for (Map.Entry<String, Object> props : mapping.entrySet()) {
-                            if (props.key == map.key) {
-                                if (props.key == map.key) {
-                                    if(props.key == "prikazIsp") {
-                                        updatePrikazIspFIO(reportGZHI, obj)
-                                    }else {
-                                        updateData.put(props.value, map.value)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                utils.edit(uuid, updateData)
-                logger.info(obj.title +" "+ uuid + " updated from rtk report")
-            }
-
-            //testRun(list, mapping)
-
-        }
+//        if (reportGZHI.accost_no != null) {
+//            def obj = utils.find('appeal', [title: reportGZHI.accost_no])[0]
+//            if (obj != null){
+//                def uuid = obj.UUID
+//                Map<Object, Object> updateData = new HashMap<>()
+//                LinkedHashMap<String, Object> properties  = reportGZHI.properties
+//                for (Map.Entry<String, Object> map: properties.entrySet() ) {
+//                    if (map.value != null) {
+//                        for (Map.Entry<String, Object> props : mapping.entrySet()) {
+//                            if (props.key == map.key) {
+//                                if (props.key == map.key) {
+//                                    if(props.key == "prikazIsp") {
+//                                        updatePrikazIspFIO(reportGZHI, obj)
+//                                    }else {
+//                                        updateData.put(props.value, map.value)
+//                                    }
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//                utils.edit(uuid, updateData)
+//                logger.info(obj.title +" "+ uuid + " updated from rtk report")
+//            }
+//
+//            //testRun(list, mapping)
+//
+//        }
     }
 }
 
-private void updatePrikazIspFIO(ReportGZHI reportGZHI, obj) {
-    def splitFIO = reportGZHI.creator_fio.split(" ")
-    Map<Object, Object> updateFIO = new HashMap<>()
-    updateFIO.put("lastName", splitFIO[0])
-    updateFIO.put("firstName", splitFIO[1])
-    updateFIO.put("middleName", splitFIO[2])
-    utils.edit(obj.prikazIsp.UUID, updateFIO)
-}
+//private void updatePrikazIspFIO(ReportGZHI reportGZHI, obj) {
+//    def splitFIO = reportGZHI.creator_fio.split(" ")
+//    Map<Object, Object> updateFIO = new HashMap<>()
+//    updateFIO.put("lastName", splitFIO[0])
+//    updateFIO.put("firstName", splitFIO[1])
+//    updateFIO.put("middleName", splitFIO[2])
+//    utils.edit(obj.prikazIsp.UUID, updateFIO)
+//}
 
 private void testRun(ArrayList<ReportGZHI> list, Map<String, String> mapping) {
     def report = list[15]

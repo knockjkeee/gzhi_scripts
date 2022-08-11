@@ -156,9 +156,9 @@ private void updateReportInDB(ArrayList<ReportGZHI> list) {
                     }
                 }
                 if(updateData.size() != 0){
-                    logger.error(updateData.toString())
+                    //logger.info(updateData.toString())
                     utils.edit(uuid, updateData)
-                    logger.error(obj.title +" "+ uuid + " updated from rtk report")
+                    logger.info(obj.title +" "+ uuid + " updated from rtk report")
                 }
             }
         }
@@ -183,7 +183,7 @@ if (json["error"] == 0) {
     ArrayList<ReportGZHI> result = parseToObject(data)
     updateReportInDB(result)
     //return result.size
-    logger.error("Всего обработано: " + result.size.toString() + " обращений")
+    logger.info("Всего обработано: " + result.size.toString() + " обращений")
 }else{
     logger.error("Ошибки при чтении данных с сервиса РТК,  " + json["error"])
 }
