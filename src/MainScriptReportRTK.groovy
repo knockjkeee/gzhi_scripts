@@ -8,7 +8,7 @@ import groovy.transform.Field
 
 @Field final String DATE_FORMAT = "dd.MM.yyyy"
 @Field final String DATE_TIME_FORMAT = "dd.MM.yyyy HH:mm"
-@Field final String URL = ""
+@Field final String URL = "http://92.50.248.64/insp/restapi/gkh.php?user=test1&pass=pass2&appl=1&action=select&object=report1"
 
 def jsonSlurper = new JsonSlurper()
 
@@ -137,29 +137,34 @@ private void updateReportInDB(ArrayList<ReportGZHI> list) {
     for (ReportGZHI reportGZHI : list) {
         if (reportGZHI.accost_no != null) {
             def obj = utils.find('appeal', [title: reportGZHI.accost_no])[0]
-            if (obj != null){
-                def uuid = obj.UUID
-                Map<Object, Object> updateData = new HashMap<>()
-                LinkedHashMap<String, Object> properties  = reportGZHI.properties
-                for (Map.Entry<String, Object> map: properties.entrySet() ) {
-                    if (map.value != null) {
-                        for (Map.Entry<String, Object> props : mapping.entrySet()) {
-                            if (props.key == map.key) {
-                                if(props.value == "prikazIsp") {
-                                    updatePrikazIspFIO(reportGZHI, obj)
-                                    //logger.error(obj.title +" "+ uuid)
-                                }else {
-                                    updateData.put(props.value, map.value)
+            if (obj != null) {
+                if (obj.UUID != null) {
+                    //logger.error(reportGZHI.accost_no + "::" + obj.UUID.toString())
+                    def uuid = obj.UUID
+                    Map<Object, Object> updateData = new HashMap<>()
+                    LinkedHashMap<String, Object> properties = reportGZHI.properties
+                    for (Map.Entry<String, Object> map : properties.entrySet()) {
+                        if (map.value != null) {
+                            for (Map.Entry<String, Object> props : mapping.entrySet()) {
+                                if (props.key == map.key) {
+                                    if (props.value == "prikazIsp") {
+                                        //logger.error(reportGZHI.accost_no + "::" + obj.prikazIsp.toString())
+                                        updatePrikazIspFIO(reportGZHI, obj)
+                                        //logger.error(obj.title +" "+ uuid)
+                                    } else {
+                                        updateData.put(props.value, map.value)
+                                    }
                                 }
                             }
                         }
                     }
+                    if (updateData.size() != 0) {
+                        //logger.error(updateData.toString())
+                        utils.edit(uuid, updateData)
+                        logger.info(obj.title + " " + uuid + " updated from rtk report")
+                    }
                 }
-                if(updateData.size() != 0){
-                    //logger.info(updateData.toString())
-                    utils.edit(uuid, updateData)
-                    logger.info(obj.title +" "+ uuid + " updated from rtk report")
-                }
+
             }
         }
     }
@@ -167,12 +172,15 @@ private void updateReportInDB(ArrayList<ReportGZHI> list) {
 
 //Обновление ФИО исполнителя приказа
 private void updatePrikazIspFIO(ReportGZHI reportGZHI, obj) {
-    def splitFIO = reportGZHI.creator_fio.split(" ")
-    Map<Object, Object> updateFIO = new HashMap<>()
-    updateFIO.put("lastName", splitFIO[0])
-    updateFIO.put("firstName", splitFIO[1])
-    updateFIO.put("middleName", splitFIO[2])
-    utils.edit(obj.prikazIsp.UUID, updateFIO)
+    //logger.error(obj.prikazIsp.UUID.toString())
+    if(obj.prikazIsp != null && obj.prikazIsp.UUID != null){
+        def splitFIO = reportGZHI.creator_fio.split(" ")
+        Map<Object, Object> updateFIO = new HashMap<>()
+        updateFIO.put("lastName", splitFIO[0])
+        updateFIO.put("firstName", splitFIO[1])
+        updateFIO.put("middleName", splitFIO[2])
+        utils.edit(obj.prikazIsp.UUID, updateFIO)
+    }
 }
 
 
