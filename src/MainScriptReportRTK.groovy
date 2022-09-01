@@ -8,7 +8,10 @@ import groovy.transform.Field
 
 @Field final String DATE_FORMAT = "dd.MM.yyyy"
 @Field final String DATE_TIME_FORMAT = "dd.MM.yyyy HH:mm"
-@Field final String URL = "http://92.50.248.64/insp/restapi/gkh.php?user=test1&pass=pass2&appl=1&action=select&object=report1"
+def rstlink = utils.get('root', [:]).rstlink;
+def rstuser = utils.get('root', [:]).rstuser;
+def rstpass = utils.get('root', [:]).rstpass;
+final String URL = rstlink + "?user=" + rstuser + "&pass=" + rstpass + "&appl=1&action=select&object=report1"
 
 def jsonSlurper = new JsonSlurper()
 
