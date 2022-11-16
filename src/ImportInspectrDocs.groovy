@@ -67,8 +67,8 @@ class InspectDocs {
     String doc_type //displayname -> Тип документа [datatype -> string]     :: DocType
     String status //displayname -> Статус [datatype -> string]              :: DocStatus
     int accost_id //displayname -> Код обращения [datatype -> int]          :: AccostId
-    String accost_no //displayname -> accost_no [datatype -> string]        ::
-    String ext_id //displayname -> ext_id [datatype -> string]              ::
+    String accost_no //displayname -> accost_no [datatype -> string]        :: accostNumber
+    String ext_id //displayname -> ext_id [datatype -> string]              :: extId
     String fileids //displayname -> Список ID файлов [datatype -> string]   :: fileids
     String inserted_by //displayname -> Автор [datatype -> string]          :: InsertedBy
     String note1 //displayname -> Примечание 1 [datatype -> string]         :: note1
@@ -123,12 +123,8 @@ private void updateProperties(ArrayList data, nameField, ArrayList dataObject, d
                     if ( objectEntry.key == "person_guid" && dataObject[j] == null ){
                         continue
                     }
-//                    try {
                     if(dataObject[j] == null) continue
                     inspectDocs.setProperty(objectEntry.key, dataObject[j]);
-//                    } catch (Exception e) {
-//                        println("J " + j + " objectEntry.key " + objectEntry.key + " dataObject[j] " + dataObject[j])
-//                    }
                 }
             }
         }
@@ -156,7 +152,7 @@ private Date parseDateTimeFromString(obj) {
 private void updateInspectDocsInDB(ArrayList<InspectDocs> data) {
     def mapping = MappingInspectDocs.getMappingFields()
     for (InspectDocs inspectDocs : data) {
-        if (inspectDocs.person_guid != null || !inspectDocs.person_guid.isEmpty()) { //TODO проверка поля инспектора
+        if (inspectDocs.doc_id != 0 && (inspectDocs.person_guid != null || !inspectDocs.person_guid.isEmpty())) { //TODO проверка поля инспектора
 
             Map<Object, Object> updateData = new HashMap<>()
             prepareUpdateData(inspectDocs, mapping, updateData)
@@ -175,7 +171,9 @@ private void updateInspectDocsInDB(ArrayList<InspectDocs> data) {
                 utils.edit(obj.UUID, updateData)
                 logger.info(LOG_PREFIX + "Обьект в таблице \"Отчетность\"  обновлен, ID записи: " + inspectDocs.doc_id)
             }
-            updateRealAppealRep(updateData, inspectDocs, obj)
+            if (inspectDocs.accost_no != null && !inspectDocs.accost_no.isEmpty()) {
+                updateRealAppealRep(updateData, inspectDocs, obj)
+            }
         }
     }
 }
