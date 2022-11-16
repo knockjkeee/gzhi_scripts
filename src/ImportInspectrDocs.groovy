@@ -7,8 +7,7 @@ import java.time.format.DateTimeFormatter
 import java.util.logging.Logger
 
 Logger logger = Logger.getLogger("") //todo off in web
-
-
+def version = "0.1"
 /*
 Подготовка объектов
 */
@@ -19,10 +18,9 @@ Logger logger = Logger.getLogger("") //todo off in web
 def isAllPeriod = false;
 def date = LocalDateTime.now()
 def timeParam = isAllPeriod
-        ? "&d1=2022-02-01&d2=" + date.date
+        ? "&d1=2020-02-01&d2=" + date.date
         : "&d1=" + date.minusDays(60).date + "&d2=" + date.date
 String URL = "" + timeParam
-
 def jsonSlurper = new JsonSlurper()
 
 /*
@@ -152,7 +150,7 @@ private Date parseDateTimeFromString(obj) {
 private void updateInspectDocsInDB(ArrayList<InspectDocs> data) {
     def mapping = MappingInspectDocs.getMappingFields()
     for (InspectDocs inspectDocs : data) {
-        if (inspectDocs.doc_id != 0 && (inspectDocs.person_guid != null || !inspectDocs.person_guid.isEmpty())) { //TODO проверка поля инспектора
+        if (inspectDocs.doc_id != 0 && inspectDocs.person_guid != null ) { //TODO проверка поля инспектора
 
             Map<Object, Object> updateData = new HashMap<>()
             prepareUpdateData(inspectDocs, mapping, updateData)
@@ -171,7 +169,7 @@ private void updateInspectDocsInDB(ArrayList<InspectDocs> data) {
                 utils.edit(obj.UUID, updateData)
                 logger.info(LOG_PREFIX + "Обьект в таблице \"Отчетность\"  обновлен, ID записи: " + inspectDocs.doc_id)
             }
-            if (inspectDocs.accost_no != null && !inspectDocs.accost_no.isEmpty()) {
+            if (inspectDocs.accost_no != null) {
                 updateRealAppealRep(updateData, inspectDocs, obj)
             }
         }
@@ -201,6 +199,7 @@ private void prepareUpdateData(InspectDocs inspectDocs, Map<String, String> mapp
             }
         }
     }
+    updateData.put("title", inspectDocs.doc_no)
 }
 
 /*
@@ -210,7 +209,7 @@ private void updateRealAppealRep(HashMap<Object, Object> updateData, InspectDocs
     if (updateData.size() > 0) {
         def rel
         try {
-            rel = utils.find('RelAppealRep', [DoscId: inspectDocs.doc_id])[0]
+            rel = utils.find('RelationClass$RelAppealRep', [DoscId: inspectDocs.doc_id])[0]
         } catch (Exception e) {
             logger.error(LOG_PREFIX + "Ошибка поиска обьекта в таблице \"Связь обращения и объекта отчетности\": " + inspectDocs.doc_id + ", ошибка: " + e.message)
         }
@@ -219,6 +218,7 @@ private void updateRealAppealRep(HashMap<Object, Object> updateData, InspectDocs
         updateDataRelAppealRep.put('DoscId', inspectDocs.doc_id)
         updateDataRelAppealRep.put('UUIDAppeal', inspectDocs.accost_no)
         updateDataRelAppealRep.put('ObjReport', obj)
+        updateDataRelAppealRep.put("title", inspectDocs.doc_no)
         if (appeal != null)  updateDataRelAppealRep.put('Appeal', appeal)
         if (rel == null) {
             utils.create('RelationClass$RelAppealRep', updateDataRelAppealRep);
