@@ -19,7 +19,7 @@ Logger logger = Logger.getLogger("") //todo off in web
 def isAllPeriod = false;
 def date = LocalDateTime.now()
 def timeParam = isAllPeriod
-        ? "&d1=2000-02-01&d2=" + date.date
+        ? "&d1=2022-02-01&d2=" + date.date
         : "&d1=" + date.minusDays(60).date + "&d2=" + date.date
 String URL = "" + timeParam
 
@@ -35,10 +35,12 @@ enum MappingInspectDocs{
     doc_type("doc_type","DocType"),
     status("status","DocStatus"),
     accost_id("accost_id","AccostId"),
+    accost_no("accost_no","accostNumber"),
+    ext_id("ext_id","extId"),
     fileids("fileids","fileids"),
     inserted_by("inserted_by","InsertedBy"),
     note1("note1","note1"),
-    person_id("person_id","inspector"), //Todo ссылка на сотрудника по id
+    person_guid("person_guid","inspector"), //Todo ссылка на сотрудника по id
 
     private def name;
     private def desc;
@@ -65,10 +67,12 @@ class InspectDocs {
     String doc_type //displayname -> Тип документа [datatype -> string]     :: DocType
     String status //displayname -> Статус [datatype -> string]              :: DocStatus
     int accost_id //displayname -> Код обращения [datatype -> int]          :: AccostId
+    String accost_no //displayname -> accost_no [datatype -> string]        ::
+    String ext_id //displayname -> ext_id [datatype -> string]              ::
     String fileids //displayname -> Список ID файлов [datatype -> string]   :: fileids
     String inserted_by //displayname -> Автор [datatype -> string]          :: InsertedBy
     String note1 //displayname -> Примечание 1 [datatype -> string]         :: note1
-    int person_id //displayname -> person_id [datatype -> int]              :: inspector
+    String person_guid //displayname -> person_guid [datatype -> string]    :: inspector
 }
 
 /*
@@ -116,10 +120,15 @@ private void updateProperties(ArrayList data, nameField, ArrayList dataObject, d
                     }
                     inspectDocs.setProperty(objectEntry.key, parseToDate);
                 } else {
-                    if ( objectEntry.key == "person_id" && dataObject[j] == null ){
+                    if ( objectEntry.key == "person_guid" && dataObject[j] == null ){
                         continue
                     }
+//                    try {
+                    if(dataObject[j] == null) continue
                     inspectDocs.setProperty(objectEntry.key, dataObject[j]);
+//                    } catch (Exception e) {
+//                        println("J " + j + " objectEntry.key " + objectEntry.key + " dataObject[j] " + dataObject[j])
+//                    }
                 }
             }
         }
@@ -147,11 +156,11 @@ private Date parseDateTimeFromString(obj) {
 private void updateInspectDocsInDB(ArrayList<InspectDocs> data) {
     def mapping = MappingInspectDocs.getMappingFields()
     for (InspectDocs inspectDocs : data) {
-        if (inspectDocs.person_id != null || inspectDocs.person_id != 0) { //TODO проверка поля инспектора
+        if (inspectDocs.person_guid != null || !inspectDocs.person_guid.isEmpty()) { //TODO проверка поля инспектора
 
             Map<Object, Object> updateData = new HashMap<>()
             prepareUpdateData(inspectDocs, mapping, updateData)
-            updateRealAppealRep(updateData, inspectDocs)
+
             def obj;
             try {
                 obj = utils.find('objreport', [DocId: inspectDocs.doc_id])[0]
@@ -161,10 +170,12 @@ private void updateInspectDocsInDB(ArrayList<InspectDocs> data) {
             if (obj == null){
                 utils.create('objreport$objreport', updateData);
                 logger.info(LOG_PREFIX + "Обьект в таблице \"Отчетность\"  создан, ID записи: " + inspectDocs.doc_id)
+                obj = utils.find('objreport', [DocId: inspectDocs.doc_id])[0]
             }else{
                 utils.edit(obj.UUID, updateData)
                 logger.info(LOG_PREFIX + "Обьект в таблице \"Отчетность\"  обновлен, ID записи: " + inspectDocs.doc_id)
             }
+            updateRealAppealRep(updateData, inspectDocs, obj)
         }
     }
 }
@@ -178,10 +189,10 @@ private void prepareUpdateData(InspectDocs inspectDocs, Map<String, String> mapp
         if (map.value != null) {
             for (Map.Entry<String, Object> props : mapping.entrySet()) {
                 if (props.key != map.key) continue
-                if (map.key == MappingInspectDocs.person_id.name()) {
+                if (map.key == MappingInspectDocs.person_guid.name()) {
                     def empl
                     try {
-                        empl = utils.find('employee', [guid: inspectDocs.person_id])[0]
+                        empl = utils.find('employee', [guid: inspectDocs.person_guid])[0]
                     } catch (Exception e) {
                         logger.error(LOG_PREFIX + "Ошибка поиска обьекта в таблице \"Сотрудник\": " + inspectDocs.doc_id + ", ошибка: " + e.message)
                     }
@@ -197,7 +208,7 @@ private void prepareUpdateData(InspectDocs inspectDocs, Map<String, String> mapp
 /*
 Обновить обьект в связи обращения и объекта отчетности
  */
-private void updateRealAppealRep(HashMap<Object, Object> updateData, InspectDocs inspectDocs) {
+private void updateRealAppealRep(HashMap<Object, Object> updateData, InspectDocs inspectDocs, obj) {
     if (updateData.size() > 0) {
         def rel
         try {
@@ -205,9 +216,12 @@ private void updateRealAppealRep(HashMap<Object, Object> updateData, InspectDocs
         } catch (Exception e) {
             logger.error(LOG_PREFIX + "Ошибка поиска обьекта в таблице \"Связь обращения и объекта отчетности\": " + inspectDocs.doc_id + ", ошибка: " + e.message)
         }
+        def appeal = utils.find('appeal', [title: inspectDocs.accost_no])[0]
         Map<Object, Object> updateDataRelAppealRep = new HashMap<>()
         updateDataRelAppealRep.put('DoscId', inspectDocs.doc_id)
-        updateDataRelAppealRep.put('UUIDAppeal', inspectDocs.titleAppeal)
+        updateDataRelAppealRep.put('UUIDAppeal', inspectDocs.accost_no)
+        updateDataRelAppealRep.put('ObjReport', obj)
+        if (appeal != null)  updateDataRelAppealRep.put('Appeal', appeal)
         if (rel == null) {
             utils.create('RelationClass$RelAppealRep', updateDataRelAppealRep);
             logger.info(LOG_PREFIX + "Запись в обьекте \"Связь обращения и объекта отчетности\"  создана, ID записи: " + inspectDocs.doc_id)
