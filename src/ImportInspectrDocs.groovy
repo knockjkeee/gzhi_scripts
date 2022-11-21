@@ -6,7 +6,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.logging.Logger
 
-Logger logger = Logger.getLogger("") //todo off in web
+//Logger logger = Logger.getLogger("") //todo off in web
 def version = "0.2"
 /*
 Подготовка объектов
@@ -18,7 +18,7 @@ def version = "0.2"
 def isAllPeriod = false;
 def date = LocalDateTime.now()
 def timeParam = isAllPeriod
-        ? "&d1=2020-02-01&d2=" + date.date //todo java8 .date
+        ? "&d1=2022-01-01&d2=" + date.date //todo java8 .date
         : "&d1=" + date.minusDays(60).date + "&d2=" + date.date
 String URL = "" + timeParam
 def jsonSlurper = new JsonSlurper()
@@ -71,7 +71,7 @@ class InspectDocs {
     String fileids //displayname -> Список ID файлов [datatype -> string]   :: fileids
     String inserted_by //displayname -> Автор [datatype -> string]          :: InsertedBy
     String note1 //displayname -> Примечание 1 [datatype -> string]         :: note1
-    String person_guid //displayname -> person_guid [datatype -> string]    :: inspector
+    String person_guid //displayname -> person_guid [datatype -> string]    :: //todo person_guid -> inspector
     String obj_id //obj_id -> id дома [datatype -> string]                  :: //todo id -> RelationClass$HouseObjReport with doc_id
     int sbj_org_id //displayname -> id УК[datatype -> int]                  :: legalentity
 }
@@ -161,7 +161,7 @@ private void updateInspectDocsInDB(ArrayList<InspectDocs> data) {
             // insert/update objReport
             def obj;
             try {
-                obj = utils.find('objreport$objreport', [DocId: inspectDocs.doc_id, title: inspectDocs.doc_no])[0]
+                obj = utils.find('objreport$objreport', [DocId: inspectDocs.doc_id, title: inspectDocs.doc_no, accostNumber: inspectDocs.accost_no])[0]
             } catch (Exception e) {
                 logger.error(LOG_PREFIX + "Ошибка поиска обьекта в таблице \"Отчетность\": " + inspectDocs.doc_id + ", ошибка: " + e.message)
             }  //TODO поиск обьекта инспектор в бд
@@ -179,7 +179,6 @@ private void updateInspectDocsInDB(ArrayList<InspectDocs> data) {
                 updateRealAppealRep(updateData, inspectDocs, obj)
             }
 
-            //result.get(1).obj_id.split(',')
             // insert data to HouseObjReport
             if (inspectDocs.obj_id != null) {
                 updateHouseObjReport(updateData, inspectDocs, obj)
@@ -205,7 +204,11 @@ private void prepareUpdateData(InspectDocs inspectDocs, Map<String, String> mapp
                     } catch (Exception e) {
                         logger.error(LOG_PREFIX + "Ошибка поиска обьекта в таблице \"Сотрудник\": " + inspectDocs.doc_id + ", ошибка: " + e.message)
                     }
-                    if (empl != null) updateData.put(props.value, empl)
+                    if (empl != null) {
+                        updateData.put(props.value, empl)
+                    }else{
+                        logger.error(LOG_PREFIX + "Ошибка поиска обьекта в таблице \"Сотрудник\": " + inspectDocs.doc_id + ", обьект не создан в базе данных")
+                    }
                 } else if (map.key == MappingInspectDocs.sbj_org_id.name()){
                     def uk
                     try {
@@ -213,7 +216,11 @@ private void prepareUpdateData(InspectDocs inspectDocs, Map<String, String> mapp
                     } catch (Exception e) {
                         logger.error(LOG_PREFIX + "Ошибка поиска обьекта в таблице \"Управляющая компания\": " + inspectDocs.doc_id + ", ошибка: " + e.message)
                     }
-                    if (uk != null) updateData.put(props.value, uk)
+                    if (uk != null) {
+                        updateData.put(props.value, uk)
+                    }else{
+                        logger.error(LOG_PREFIX + "Ошибка поиска обьекта в таблице \"Управляющая компания\": " + inspectDocs.doc_id + ", обьект не создан в базе данных")
+                    }
                 }else {
                     updateData.put(props.value, map.value)
                 }
@@ -230,7 +237,7 @@ private void updateRealAppealRep(HashMap<Object, Object> updateData, InspectDocs
     if (updateData.size() > 0) {
         def rel
         try {
-            rel = utils.find('RelationClass$RelAppealRep', [DocsId: inspectDocs.doc_id, title: inspectDocs.doc_no])[0]
+            rel = utils.find('RelationClass$RelAppealRep', [DocsId: inspectDocs.doc_id, title: inspectDocs.doc_no, TitleAppeal:inspectDocs.accost_no])[0]
         } catch (Exception e) {
             logger.error(LOG_PREFIX + "Ошибка поиска обьекта в таблице \"Связь обращения и объекта отчетности\": " + inspectDocs.doc_id + ", ошибка: " + e.message)
         }
@@ -269,7 +276,7 @@ private void updateHouseObjReport(HashMap<Object, Object> updateData, InspectDoc
 
             def rel
             try {
-                rel = utils.find('RelationClass$HouseObjReport', [DocsId: inspectDocs.doc_id, title: inspectDocs.doc_no, HouseId:item])[0]
+                rel = utils.find('RelationClass$HouseObjReport', [DocsId: inspectDocs.doc_id, title: inspectDocs.doc_no, HouseId:item, TitleAppeal:inspectDocs.accost_no])[0]
             } catch (Exception e) {
                 logger.error(LOG_PREFIX + "Ошибка поиска обьекта в таблице \"Связь дома и объекта отчетности\" doc_id: " + inspectDocs.doc_id + ", house_id: " + item + ", ошибка: " + e.message)
                 return
@@ -284,9 +291,14 @@ private void updateHouseObjReport(HashMap<Object, Object> updateData, InspectDoc
             Map<Object, Object> updateDataRelAppealRep = new HashMap<>()
             updateDataRelAppealRep.put('DocsId', inspectDocs.doc_id)
             updateDataRelAppealRep.put('ObjReport', obj)
+            updateDataRelAppealRep.put('TitleAppeal', inspectDocs.accost_no)
             updateDataRelAppealRep.put("title", inspectDocs.doc_no)
             updateDataRelAppealRep.put("HouseId", item)
-            if (house != null)  updateDataRelAppealRep.put('house', house)
+            if (house != null)  {
+                updateDataRelAppealRep.put('house', house)
+            }else{
+                logger.error(LOG_PREFIX + "Ошибка поиска обьекта в таблице \"Дом\" doc_id: " + inspectDocs.doc_id + ", house_id: " + item + ", обьект не создан в базе данных")
+            }
             if (rel == null) {
                 utils.create('RelationClass$HouseObjReport', updateDataRelAppealRep);
                 logger.info(LOG_PREFIX + "Запись в обьекте \"Связь дома и объекта отчетности\"  создана, doc_id: " + inspectDocs.doc_id + ", house_id: " + item)
