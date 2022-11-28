@@ -4,11 +4,13 @@ import groovy.json.JsonSlurper
 import groovy.transform.Field
 
 import javax.net.ssl.*
-import java.security.cert.CertificateException
-import java.security.cert.X509Certificate
+import java.security.KeyStore
 import java.util.logging.Logger
 
-Logger logger = Logger.getLogger("") //todo off in web
+@Field final Logger logger = Logger.getLogger("") //todo off in web
+
+
+
 
 enum Catalog {
     GetAddControlMeasures("Справочник Дополнительные меры контроля"),
@@ -32,59 +34,30 @@ enum Catalog {
     Catalog(String desc) {
         this.desc = desc
     }
-
 }
 
-class UnsafeTrustManager extends X509ExtendedTrustManager {
-
+class TrustHostnameVerifier implements HostnameVerifier {
     @Override
-    void checkClientTrusted(X509Certificate[] chain, String authType, Socket socket) throws CertificateException {
-
-    }
-
-    @Override
-    void checkServerTrusted(X509Certificate[] chain, String authType, Socket socket) throws CertificateException {
-
-    }
-
-    @Override
-    void checkClientTrusted(X509Certificate[] chain, String authType, SSLEngine engine) throws CertificateException {
-
-    }
-
-    @Override
-    void checkServerTrusted(X509Certificate[] chain, String authType, SSLEngine engine) throws CertificateException {
-
-    }
-
-    @Override
-    void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-
-    }
-
-    @Override
-    void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-
-    }
-
-    @Override
-    X509Certificate[] getAcceptedIssuers() {
-        return new X509Certificate[0]
+    boolean verify(String hostname, SSLSession session) {
+        return hostname == session.peerHost
     }
 }
 
-@Field final JsonSlurper jsonSlurper = new JsonSlurper()
-@Field final String baseUrl = ""
-@Field final String LOG_PREFIX = "[САДКО: синхронизации справочников] "
-
-SSLSocketFactory getSSLSocketFactory() {
-    def sslContext = SSLContext.getInstance("TLS")
-    sslContext.init(null, new TrustManager[]{new UnsafeTrustManager()}, null)
-    def sslSocketFactory = sslContext.getSocketFactory()
-    return sslSocketFactory
+def prepareSSLConnection(){
+    def context = SSLContext.getInstance('SSL')
+    def tks = KeyStore.getInstance(KeyStore.defaultType);
+    def tmf = TrustManagerFactory.getInstance('SunX509')
+    new File (PATH).withInputStream { stream ->
+        tks.load(stream, PASSWORD.toCharArray())
+    }
+    tmf.init(tks)
+    context.init(null, tmf.trustManagers, null)
+    HttpsURLConnection.defaultSSLSocketFactory = context.socketFactory
+    HttpsURLConnection.setDefaultHostnameVerifier(new TrustHostnameVerifier())
 }
 
-def updateDataToDb(ArrayList data, Catalog item, dataCSV) {
+
+def updateDataToDb(ArrayList data, Catalog item) {
     def catalogName = item.desc + " [ " + item.name() + " ]"
     for (def val in data) {
         def id = val.Id
@@ -93,9 +66,10 @@ def updateDataToDb(ArrayList data, Catalog item, dataCSV) {
         updateData.put("itemId", id)
         updateData.put("itemName", id)
 
-        println(name)
-        dataCSV.add(name)
+//        println(name)
+//        dataCSV.add(name)
 
+        //////// CREATE OBJ DB //////
 //        def obj
 //        try {
 //            obj = utils.find('???$' + catalogName, [itemId: itemId])[0]
@@ -115,7 +89,7 @@ def updateDataToDb(ArrayList data, Catalog item, dataCSV) {
     }
 }
 
-def loadData(String response, Catalog item, dataCSV) {
+def loadData(String response, Catalog item) {
     def catalogName = item.desc + " [ " + item.name() + " ]"
     ArrayList data
     try {
@@ -124,38 +98,44 @@ def loadData(String response, Catalog item, dataCSV) {
         logger.error(LOG_PREFIX + "Ошибка в получении данных из справочника " + catalogName + ", ошибка: " + e.message)
     }
     if (data.size() > 0) {
-        updateDataToDb(data, item, dataCSV)
+        updateDataToDb(data, item)
+//        updateDataToDb(data, item, dataCSV)
     } else {
         logger.error(LOG_PREFIX + "Полученный массив из справочника " + catalogName + ", пустой.")
     }
 }
 
-def loadCatalog(Catalog item, dataCSV) {
+def loadCatalog(Catalog item) {
     def catalogName = item.desc + " [ " + item.name() + " ]"
     def url = baseUrl + item.name()
     def response = (HttpsURLConnection) new URL(url).openConnection()
-    response.setSSLSocketFactory(getSSLSocketFactory())
     if (response.responseCode == 200) {
+//        dataCSV.add(" ")
+//        dataCSV.add(item.desc)
+//        println(LOG_PREFIX  + catalogName + " загружен")
 
-        dataCSV.add(" ")
-        dataCSV.add(item.desc)
-        println(LOG_PREFIX  + catalogName + " загружен")
-
-        loadData(response.inputStream.text, item, dataCSV)
+        loadData(response.inputStream.text, item)
+//        loadData(response.inputStream.text, item, dataCSV)
     } else {
         logger.error(LOG_PREFIX + "Ошибка в запросе по справочнику: " + catalogName + ", код ошибки: " + response.responseCode + ", ошибка: " + response.errorStream.text)
     }
-    //logger.info(LOG_PREFIX + catalogName + " загружен")
+    logger.info(LOG_PREFIX + catalogName + " загружен")
 }
 
-def dataCSV = []
+//////// CREATE CATALOG CSV //////
+//def createCatalogCSV (dataCSV){
+//    def file = new File('/Users/knockjkeee/IdeaProjects/gzhiKaluga/src/sadko/catalog/Catalog.csv')
+//    file.createNewFile()
+//    dataCSV.forEach(item -> file.append(item + "\n"))
+//}
+//def dataCSV = []
+
+
+prepareSSLConnection()
 def values = Catalog.values()
 for (def item in values) {
-    loadCatalog(item, dataCSV)
+//    loadCatalog(item, dataCSV)
+    loadCatalog(item)
 }
-
-def file = new File('/Users/knockjkeee/IdeaProjects/gzhiKaluga/src/sadko/catalog/Catalog.csv')
-file.createNewFile()
-dataCSV.forEach(item -> file.append(item + "\n"))
-
+//createCatalogCSV(dataCSV)
 println('Finish')
