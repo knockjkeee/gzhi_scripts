@@ -20,7 +20,6 @@ def date = LocalDateTime.now()
 def timeParam = isAllPeriod
         ? "&d1=2020-01-01&d2=" + date.date //todo java8 .date
         : "&d1=" + date.minusDays(60).date + "&d2=" + date.date
-String URL = "http://92.50.248.64/insp/restapi/gkh.php?user=test1&pass=pass2&appl=1&action=select&object=docs_pers" + timeParam
 def jsonSlurper = new JsonSlurper()
 
 /*
