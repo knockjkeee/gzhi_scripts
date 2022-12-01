@@ -313,6 +313,7 @@ class GetResultsData {
     private static Map data = [
             "Не определено": "Нет", //todo check field
             "Поддержано"   : null,
+            "Поддержано, в том числе меры приняты"   : null,
             "Не поддержано": null,
             "Разъяснено"   : null,
     ]
@@ -357,26 +358,28 @@ class GetTakenMeasuresData {
 }
 
 enum Catalog {
-    GetAddControlMeasures("Справочник Дополнительные меры контроля", GetAddControlMeasuresData.getData()),
-    GetCitizenAddressAreas("Справочник районов", GetCitizenAddressAreasData.getData()),
-    GetCitizenAnswerSendTypes("Справочник способов ответа гражданину", GetCitizenAnswerSendTypesData.getData()),
-    GetCitizenBenefits("Справочник льготного состава", GetCitizenBenefitsData.getData()),
-    GetCitizenSocialStatuses("Справочник социальных статусов", GetCitizenSocialStatusesData.getData()),
-    GetConsiderationForms("Справочник формы рассмотрения", GetConsiderationFormsData.getData()),
-    GetCorrespondents("Справочник корреспондентов", GetCorrespondentsData.getData()),
-    GetDecisions("Справочник решений по резолюции", GetDecisionsData.getData()),
-    GetDeliveryTypes("Справочник типов доставки", GetDeliveryTypesData.getData()),
-    GetDocumentTypes("Справочник видов обращения", GetDocumentTypesData.getData()),
-    GetInspectionTypes("Справочник Типы проверки", GetInspectionTypesData.getData()),
-    GetLetterTypes("Справочник типов обращения", GetLetterTypesData.getData()),
-    GetResults("Справочник Результат рассмотрения", GetResultsData.getData()),
-    GetSstuStatuses("Справочник Статус обращения (ССТУ)", GetSstuStatusesData.getData()),
-    GetTakenMeasures("Справочник Принятые меры", GetTakenMeasuresData.getData()),
+    GetAddControlMeasures("ControlMeasure","Справочник Дополнительные меры контроля", GetAddControlMeasuresData.getData()),
+    GetCitizenAddressAreas("CitizenAddArea","Справочник районов", GetCitizenAddressAreasData.getData()),
+    GetCitizenAnswerSendTypes("CitizenAnSeTy","Справочник способов ответа гражданину", GetCitizenAnswerSendTypesData.getData()),
+    GetCitizenBenefits("CitizenBenefit","Справочник льготного состава", GetCitizenBenefitsData.getData()),
+    GetCitizenSocialStatuses("CitizenSocStat","Справочник социальных статусов", GetCitizenSocialStatusesData.getData()),
+    GetConsiderationForms("ConsiderationF","Справочник формы рассмотрения", GetConsiderationFormsData.getData()),
+    GetCorrespondents("Correspondents","Справочник корреспондентов", GetCorrespondentsData.getData()),
+    GetDecisions("Decisions","Справочник решений по резолюции", GetDecisionsData.getData()),
+    GetDeliveryTypes("DeliveryTypes","Справочник типов доставки", GetDeliveryTypesData.getData()),
+    GetDocumentTypes("DocumentTypes","Справочник видов обращения", GetDocumentTypesData.getData()),
+    GetInspectionTypes("InspectionType","Справочник Типы проверки", GetInspectionTypesData.getData()),
+    GetLetterTypes("LetterTypes","Справочник типов обращения", GetLetterTypesData.getData()),
+    GetResults("Results","Справочник Результат рассмотрения", GetResultsData.getData()),
+    GetSstuStatuses("SstuStatuses","Справочник Статус обращения (ССТУ)", GetSstuStatusesData.getData()),
+    GetTakenMeasures("TakenMeasures","Справочник Принятые меры", GetTakenMeasuresData.getData()),
 
+    private def tName
     private def desc;
     private Map data;
 
-    Catalog(String desc, Map data) {
+    Catalog(String tName, String desc, Map data) {
+        this.tName = tName
         this.desc = desc
         this.data = data
     }
@@ -403,26 +406,25 @@ def prepareSSLConnection() {
 }
 
 def updateDataToDb(ArrayList data, Catalog item) {
-    def catalogName = item.desc + " [ " + item.name() + " ]"
+    def catalogName = item.desc + " [ " + item.tName + " ]"
     for (def val in data) {
         def id = val.Id
         def name = val.Name
-        LinkedHashMap<String, String> map = item.data
         Map<Object, Object> updateData = new HashMap<>()
         updateData.put("itemId", id)
         updateData.put("itemName", name)
         updateData.put("itemMap", item.data.get(name))
 
-        //////// CREATE OBJ DB //////
+        ////// CREATE OBJ DB //////
         def obj
         try {
-            obj = utils.find('???$' + catalogName, [itemId: itemId])[0]
+            obj = utils.find(SADCO_CATALOG + item.tName, [itemId: id])[0]
         } catch (Exception e) {
             logger.error(LOG_PREFIX + "Ошибка поиска обьекта в таблице \"Справочники:" + catalogName + " \", id обьекта: " + id + " ошибка: " + e.message)
         }
         if (obj == null) {
             updateData.put("title", name)
-            utils.create('???$' + catalogName, updateData)
+            utils.create(SADCO_CATALOG + item.tName, updateData)
             logger.info(LOG_PREFIX + "Обьект в таблице \"Справочники:" + catalogName + " \" создан, ID записи: " + id)
 
         } else {
