@@ -14,9 +14,9 @@ import java.util.logging.Logger
 
 
 
-enum MappingTypeUrl{
-    resolution("resolution","InboxResol"),
-    letter("letter","InboxLetter"),
+enum MappingTypeUrl {
+    resolution("resolution", "InboxResol"),
+    letter("letter", "InboxLetter"),
 
     private def name;
     private def url;
@@ -29,24 +29,26 @@ enum MappingTypeUrl{
     static Map<String, String> getMapFields() {
         def name = values()*.name
         def decs = values()*.url
-        return [ name, decs ].transpose().collectEntries();
+        return [name, decs].transpose().collectEntries();
     }
 }
 
 class InboxCard {
-    Card Card
+    Resol Card
     Resolution Resolution
-    Card Letter
+    Letter Letter
 }
 
-class Card {
-    String Guid
-    String CitizenName
-    String CitizenSurname
-    String CitizenPatronymic
-    String CitizenAddress
-    String CitizenAddressPost
-    int CitizenAddressAreaId //
+class Resol {                       // appeal
+
+    String Guid                     // КУДА ??? //todo check
+    // Заявитель
+    String CitizenName              // Имя заявителя -> LastName
+    String CitizenSurname           // Фамилия заявителя -> FirstName
+    String CitizenPatronymic        // Отчество заявителя -> MiddleName
+    String CitizenAddress           // Почтовый адрес заявителя -> oldaddr //todo check
+    String CitizenAddressPost       // Индекс почтового адреса заявителя -> indexAddr
+    int CitizenAddressAreaId
     String CitizenPhone
     String CitizenEmail
     int CitizenSocialStatusId
@@ -54,7 +56,7 @@ class Card {
     int CitizenAnswerSendTypeId
     int LetterTypeId
     int DocumentTypeId
-    int CorrespondentId //
+    int CorrespondentId
     String LetterNumber
     String ControlOrgSendDate
     String ReceiveDate
@@ -67,6 +69,23 @@ class Card {
     String DocSheetNumber
     String DocCopyNumber
     int ConcernedCitizensNumber
+    String Message
+    ArrayList Files
+}
+
+class Letter {
+    String CitizenName
+    String CitizenSurname
+    String CitizenPatronymic
+    String CitizenAddress
+    String CitizenAddressPost
+    int CitizenSocialStatusId
+    int CitizenAnswerSendTypeId
+    String CitizenPhone
+    String CitizenEmail
+    String LetterNumber
+    String ReceiveDate
+    int DeliveryTypeId
     String Message
     ArrayList Files
 }
@@ -119,6 +138,95 @@ class Inbox {
         Guid = guid
         Created = created
         Type = type
+    }
+}
+
+class PrepareAddress {
+    static Map<String, String> sliceAddres(String addres) {
+        def slice = addres.split(',')
+        Map<String, String> map = new HashMap<>()
+        for (def val : slice) {
+            def item = val.trim()
+            switch (item) {
+                case { it.contains('обл.') }:
+                    map.put('обл', item.substring('обл.'.size(), item.size()))
+                    break
+                case { it.contains('р-н.') }:
+                    map.put('р-н', item.substring('р-н.'.size(), item.size()))
+                    break
+                    ////////////Населеный пункт//////////////
+                case { it.contains('г.') }:
+                    map.put('г', item.substring('г.'.size(), item.size()))
+                    break
+                case { it.contains('д.') && item.indexOf('.') == item.size() - 1 }:
+                    map.put('дер', item.substring(0, item.indexOf('.') - 'д.'.size()))
+                    break
+                    //////////////////////////
+                    ////////////УЛИЦА//////////////
+                case { it.contains('ул.') }:
+                    map.put('ул', item.substring('ул.'.size(), item.size()))
+                    break
+                case { it.contains('пер.') }:
+                    map.put('пер', item.substring('пер.'.size(), item.size()))
+                    break
+                case { it.contains('пл.') }:
+                    map.put('пл', item.substring('пл.'.size(), item.size()))
+                    break
+                case { it.contains('пр.') }:
+                    map.put('пр', item.substring('пр.'.size(), item.size()))
+                    break
+                    //////////////////////////
+                case { it.contains('д.') }:
+                    map.put('д', item.substring('д.'.size(), item.size()))
+                    break
+                case { it.contains('кв.') }:
+                    map.put('кв', item.substring('кв.'.size(), item.size()))
+                    break
+            }
+        }
+        return map
+    }
+
+    static boolean sliceContainsAddres(String address, String value) {
+        def split = address.split(', ')
+        for (def item : split) {
+            def strings = item.split('\\.')
+            if (strings == null || strings.size() == 0) return false
+            if (strings.size() > 1) {
+                if (value.contains(strings[1])) {
+                    return true
+                }
+            } else {
+                if (value.contains(strings[0])) {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    static String getStreet(Map<String, String> map) {
+        def street = ['ул', 'пр', 'пл', 'пер']
+        for (def val : street) {
+            if (map[val] != null) return map[val]
+        }
+        return null
+    }
+
+    static String getLocality(Map<String, String> map) {
+        def street = ['г', 'дер']
+        for (def val : street) {
+            if (map[val] != null) return map[val]
+        }
+        return null
+    }
+
+    static boolean checkMatchAddress(Map<String, String> map, String address, String value) {
+        def isContains = sliceContainsAddres(address, value)
+        if (isContains) return isContains
+        def locally = getLocality(map)
+        if (locally == null) return false
+        return value.contains(locally)
     }
 }
 
@@ -196,11 +304,38 @@ InboxCard appealProcessing(String url, String token, String guid) {
         def text = jsonSlurper.parseText(response.inputStream.text)
         card = text as InboxCard
         return card
-    }else{
+    } else {
         logger.error("${LOG_PREFIX} Ошибка в запросе при получении обращения, код ошибки: ${response.responseCode}, guid: ${guid}")
     }
     return card
 }
+
+def prepareToDb(InboxCard card) {
+    if (card.Card != null) {
+        pushResolToDb(card.Card, card.Resolution)
+    }
+    if (card.Letter != null) {
+        pushLetterToDb(card.Letter)
+    }
+}
+
+def pushLetterToDb(Letter letter) {
+
+}
+
+
+def pushResolToDb(Resol resol, Resolution resolution) {
+    def obj = ""
+
+}
+
+// example prepare address
+def address = "обл.Калужская, р-н.Дзержинский, г.Кондрово, ул.Пушкина, д.728, кв.170, Додо д."
+def mapAddress = PrepareAddress.sliceAddres(address)
+def streetName = PrepareAddress.getStreet(mapAddress)
+def houseNumber = mapAddress.get('д')
+def isMatch = PrepareAddress.checkMatchAddress(mapAddress, address, "р-н.Дзержинский, г.Кондрово,") // value = street.title
+
 
 prepareSSLConnection()
 def response = (HttpsURLConnection) new URL(connectUrl).openConnection()
@@ -214,8 +349,8 @@ if (response.responseCode == 200) {
         def urlFields = MappingTypeUrl.getMapFields()
         data.each { inbox ->
             InboxCard card = appealProcessing(baseUrl + urlFields.get(inbox.Type) + "/" + inbox.Guid, authorization, inbox.Guid)
-            if (card != null){
-
+            if (card != null) {
+                prepareToDb(card)
             }
             logger.info("${LOG_PREFIX} Обращение, c атрибутами: тип - ${inbox.Type}, guid - ${inbox.Guid}, загружено")
         }
@@ -225,3 +360,34 @@ if (response.responseCode == 200) {
 } else {
     logger.error("${LOG_PREFIX} Ошибка в запросе при получении токена, код ошибки: ${response.responseCode}, ошибка: ${response.errorStream.text}")
 }
+
+
+//
+//def objj = utils.find('appeal', [title: 'Т-8162-22'])
+////return obj.house2.region.UUID
+////return obj.street2
+////return objj.house2.UUID
+//
+//
+////Район обращения -> obj.house2.region.UUID title -> район
+//def res = utils.find('regionAp', [title: 'Бабынинский'])
+//
+//
+////Список домов title -> номер дома
+//def houses = utils.find('Location$house', [title: '2'])
+////return houses[0].stid
+//
+////Список домов contains -> улица
+//for(def house: houses){
+//    def street = house.stid
+//    try {
+//        def isFind = street.title.contains("Аристово")
+//        if(isFind){
+//            return house.UUID
+//        }
+//    } catch (Exception e) {
+//    }
+//
+//
+//    //return false
+//}
