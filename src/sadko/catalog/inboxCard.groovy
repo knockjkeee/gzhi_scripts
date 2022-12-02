@@ -41,35 +41,35 @@ class InboxCard {
 
 class Resol {                       // appeal
 
-    String Guid                     // КУДА ??? //todo check
+    String Guid                     // КУДА ??? //todo check new field GuidSadko
     // Заявитель
     String CitizenName              // Имя заявителя -> LastName
     String CitizenSurname           // Фамилия заявителя -> FirstName
     String CitizenPatronymic        // Отчество заявителя -> MiddleName
-    String CitizenAddress           // Почтовый адрес заявителя -> oldaddr //todo check
+    String CitizenAddress           // Почтовый адрес заявителя -> oldaddr //todo check собрать из дома [house2]+[street2]+room
     String CitizenAddressPost       // Индекс почтового адреса заявителя -> indexAddr
-    int CitizenAddressAreaId
-    String CitizenPhone
-    String CitizenEmail
-    int CitizenSocialStatusId
-    int CitizenBenefitId
-    int CitizenAnswerSendTypeId
-    int LetterTypeId
-    int DocumentTypeId
-    int CorrespondentId
-    String LetterNumber
-    String ControlOrgSendDate
-    String ReceiveDate
-    int DeliveryTypeId
-    int ConsiderationFormId//
-    String ReceivedFrom
-    String RegistrationNumber
-    String RegistrationDate
-    int PreviousCardsCount
-    String DocSheetNumber
-    String DocCopyNumber
-    int ConcernedCitizensNumber
-    String Message
+    int CitizenAddressAreaId        // ID района по почтовому адресу заявителя -> справочник CitizenAddArea
+    String CitizenPhone             // Телефон заявителя -> phoneNumber
+    String CitizenEmail             // E-Mail заявителя -> email
+    int CitizenSocialStatusId       // ID социальный статус гражданина -> справочник CitizenSocStat
+    int CitizenBenefitId            // ID льготный состав гражданина -> справочник CitizenBenefit
+    int CitizenAnswerSendTypeId     // Желаемый способ ответа гражданину -> спарвочник CitizenAnSeTy
+    int LetterTypeId                // ID типа обращения -> справочник LetterTypes
+    int DocumentTypeId              // ID вида обращения -> справочник DocumentTypes
+    int CorrespondentId             // ID корреспондента -> справочник Correspondents
+    String LetterNumber             // Номер сопроводительного письма -> MessageNumber
+    String ControlOrgSendDate       // Дата отправки из организации -> MessageDate
+    String ReceiveDate              // Дата поступления //todo new field ReceiveDateSadko
+    int DeliveryTypeId              // Тип доставки -> справочник DeliveryTypes
+    int ConsiderationFormId         // Форма рассмотрения -> справочник ConsiderationF
+    String ReceivedFrom             // Поступило из -> //todo fromAp справочник Место поступления или receivedfrom (строка)
+    String RegistrationNumber       // Регистрационный номер -> //todo new fiels RegistrationNumberSadko
+    String RegistrationDate         // Дата регистрации -> registerDate
+    int PreviousCardsCount          // Количество предыдущих обращений //todo new field ????
+    String DocSheetNumber           // Количество листов документа  //todo new field ????
+    String DocCopyNumber            // Количество листов приложения //todo new field ????
+    int ConcernedCitizensNumber     // Количество заинтересованных
+    String Message                  // Текст обращения -> descrip
     ArrayList Files
 }
 
@@ -329,14 +329,6 @@ def pushResolToDb(Resol resol, Resolution resolution) {
 
 }
 
-// example prepare address
-def address = "обл.Калужская, р-н.Дзержинский, г.Кондрово, ул.Пушкина, д.728, кв.170, Додо д."
-def mapAddress = PrepareAddress.sliceAddres(address)
-def streetName = PrepareAddress.getStreet(mapAddress)
-def houseNumber = mapAddress.get('д')
-def isMatch = PrepareAddress.checkMatchAddress(mapAddress, address, "р-н.Дзержинский, г.Кондрово,") // value = street.title
-
-
 prepareSSLConnection()
 def response = (HttpsURLConnection) new URL(connectUrl).openConnection()
 prepareRequestPOST(response)
@@ -347,12 +339,15 @@ if (response.responseCode == 200) {
         def authorization = connect.token_type + " " + connect.access_token
         def data = loadInboxData(authorization)
         def urlFields = MappingTypeUrl.getMapFields()
+        def count = 0
         data.each { inbox ->
+            if (count > 0) return false
             InboxCard card = appealProcessing(baseUrl + urlFields.get(inbox.Type) + "/" + inbox.Guid, authorization, inbox.Guid)
             if (card != null) {
                 prepareToDb(card)
             }
             logger.info("${LOG_PREFIX} Обращение, c атрибутами: тип - ${inbox.Type}, guid - ${inbox.Guid}, загружено")
+            count++
         }
     } else {
         logger.error("${LOG_PREFIX} Токен отсутствует, дальнейшая загрузка прерывается")
@@ -360,6 +355,14 @@ if (response.responseCode == 200) {
 } else {
     logger.error("${LOG_PREFIX} Ошибка в запросе при получении токена, код ошибки: ${response.responseCode}, ошибка: ${response.errorStream.text}")
 }
+
+
+// example prepare address
+def address = "обл.Калужская, р-н.Дзержинский, г.Кондрово, ул.Пушкина, д.728, кв.170, Додо д."
+def mapAddress = PrepareAddress.sliceAddres(address)
+def streetName = PrepareAddress.getStreet(mapAddress)
+def houseNumber = mapAddress.get('д')
+def isMatch = PrepareAddress.checkMatchAddress(mapAddress, address, "р-н.Дзержинский, г.Кондрово,") // value = street.title
 
 
 //
