@@ -41,68 +41,102 @@ class InboxCard {
 
 class Resol {                       // appeal
 
-    String Guid                     // КУДА ??? //todo check new field GuidSadko
+    String Guid                     // Уникальный идентификатор резолюции todo check New field -> GuidSadko
     // Заявитель
     String CitizenName              // Имя заявителя -> LastName
     String CitizenSurname           // Фамилия заявителя -> FirstName
     String CitizenPatronymic        // Отчество заявителя -> MiddleName
-    String CitizenAddress           // Почтовый адрес заявителя -> oldaddr //todo check собрать из дома [house2]+[street2]+room
+    String CitizenAddress           // Почтовый адрес заявителя -> oldaddr todo check собрать из дома [house2]+[street2]+room
+                                    // Список домов title -> номер дома
+                                    // def houses = utils.find('Location$house', [title: '2'])
+                                    // Список домов contains -> улица или метод поподания
+                                    // for(def house: houses){
+                                    //      def street = house.stid
+                                    //      try {
+                                    //            def isFind = street.title.contains("Аристово")
+                                    //          if(isFind){
+                                    //                return house.UUID
+                                    //          }
+                                    //      } catch (Exception e) {}
+                                    //   return null
+                                    //}
     String CitizenAddressPost       // Индекс почтового адреса заявителя -> indexAddr
-    int CitizenAddressAreaId        // ID района по почтовому адресу заявителя -> справочник CitizenAddArea
+    int CitizenAddressAreaId        // ID района по почтовому адресу заявителя -> справочник CitizenAddArea [regionAp]
     String CitizenPhone             // Телефон заявителя -> phoneNumber
     String CitizenEmail             // E-Mail заявителя -> email
-    int CitizenSocialStatusId       // ID социальный статус гражданина -> справочник CitizenSocStat
-    int CitizenBenefitId            // ID льготный состав гражданина -> справочник CitizenBenefit
-    int CitizenAnswerSendTypeId     // Желаемый способ ответа гражданину -> спарвочник CitizenAnSeTy
-    int LetterTypeId                // ID типа обращения -> справочник LetterTypes
-    int DocumentTypeId              // ID вида обращения -> справочник DocumentTypes
-    int CorrespondentId             // ID корреспондента -> справочник Correspondents
+    int CitizenSocialStatusId       // ID социальный статус гражданина -> справочник CitizenSocStat todo не используют
+    int CitizenBenefitId            // ID льготный состав гражданина -> справочник CitizenBenefit todo не используют
+    int CitizenAnswerSendTypeId     // Желаемый способ ответа гражданину -> спарвочник CitizenAnSeTy [ansType]
+    int LetterTypeId                // ID типа обращения -> справочник LetterTypes [typeAp]
+    int DocumentTypeId              // ID вида обращения -> справочник DocumentTypes [viewAp]
+    int CorrespondentId             // ID корреспондента -> справочник Correspondents [reporter]
     String LetterNumber             // Номер сопроводительного письма -> MessageNumber
     String ControlOrgSendDate       // Дата отправки из организации -> MessageDate
-    String ReceiveDate              // Дата поступления //todo new field ReceiveDateSadko
-    int DeliveryTypeId              // Тип доставки -> справочник DeliveryTypes
-    int ConsiderationFormId         // Форма рассмотрения -> справочник ConsiderationF
-    String ReceivedFrom             // Поступило из -> //todo fromAp справочник Место поступления или receivedfrom (строка)
-    String RegistrationNumber       // Регистрационный номер -> //todo new fiels RegistrationNumberSadko
+    String ReceiveDate              // Дата поступления todo New field -> ReceiveDateSadko
+    int DeliveryTypeId              // Тип доставки -> справочник DeliveryTypes [deliveryType]
+    int ConsiderationFormId         // Форма рассмотрения -> справочник ConsiderationF todo не используют
+    String ReceivedFrom             // Поступило из -> todo fromAp справочник Место поступления или receivedfrom (строка) !!!!!!!!!!!!
+    String RegistrationNumber       // Регистрационный номер -> todo New field -> RegistrationNumberSadko
     String RegistrationDate         // Дата регистрации -> registerDate
-    int PreviousCardsCount          // Количество предыдущих обращений //todo new field ????
-    String DocSheetNumber           // Количество листов документа  //todo new field ????
-    String DocCopyNumber            // Количество листов приложения //todo new field ????
-    int ConcernedCitizensNumber     // Количество заинтересованных
+    int PreviousCardsCount          // Количество предыдущих обращений todo New field -> PreviousCardsCountSadko
+    String DocSheetNumber           // Количество листов документа  todo New field -> DocSheetNumberSadko
+    String DocCopyNumber            // Количество листов приложения todo New field -> DocCopyNumberSadko
+    int ConcernedCitizensNumber     // Количество заинтересованных todo New field -> ConcernedCitizensNumberSadko
     String Message                  // Текст обращения -> descrip
-    ArrayList Files
+    ArrayList Files                 // Файлы -> Павет документов [docpack]
+                                    // Прикрепление файла к объекту*/
+                                    // def attachedFile = utils.attachFile(obj, fileName, contentType, description, data)
+                                    // def str = new String(base64.decodeBase64())
+                                    // def attachedFile = utils.attachFile(utils.get(obj.docpack.UUID[0]), "Hello4.txt", '', "Hello", str.getBytes())
 }
 
 class Letter {
-    String CitizenName
-    String CitizenSurname
-    String CitizenPatronymic
-    String CitizenAddress
-    String CitizenAddressPost
-    int CitizenSocialStatusId
-    int CitizenAnswerSendTypeId
-    String CitizenPhone
-    String CitizenEmail
-    String LetterNumber
-    String ReceiveDate
-    int DeliveryTypeId
-    String Message
-    ArrayList Files
+    String CitizenName              // Имя заявителя -> LastName
+    String CitizenSurname           // Фамилия заявителя -> FirstName
+    String CitizenPatronymic        // Отчество заявителя -> MiddleName
+    String CitizenAddress           // Почтовый адрес заявителя -> oldaddr todo check собрать из дома [house2]+[street2]+room
+                                    // Список домов title -> номер дома
+                                    // def houses = utils.find('Location$house', [title: '2'])
+                                    // Список домов contains -> улица или метод поподания
+                                    // for(def house: houses){
+                                    //      def street = house.stid
+                                    //      try {
+                                    //            def isFind = street.title.contains("Аристово")
+                                    //          if(isFind){
+                                    //                return house.UUID
+                                    //          }
+                                    //      } catch (Exception e) {}
+                                    //   return null
+                                    //}
+    String CitizenAddressPost       // Индекс почтового адреса заявителя -> indexAddr
+    int CitizenSocialStatusId       // ID социальный статус гражданина -> справочник CitizenSocStat todo не используют
+    int CitizenAnswerSendTypeId     // Желаемый способ ответа гражданину -> спарвочник CitizenAnSeTy [ansType]
+    String CitizenPhone             // Телефон заявителя -> phoneNumber
+    String CitizenEmail             // E-Mail заявителя -> email
+    String LetterNumber             // Номер сопроводительного письма -> MessageNumber
+    String ReceiveDate              // Дата поступления todo New field -> ReceiveDateSadko
+    int DeliveryTypeId              // Тип доставки -> справочник DeliveryTypes [deliveryType]
+    String Message                  // Текст обращения -> descrip
+    ArrayList Files                 // Файлы -> Павет документов [docpack]
+                                    // Прикрепление файла к объекту*/
+                                    // def attachedFile = utils.attachFile(obj, fileName, contentType, description, data)
+                                    // def str = new String(base64.decodeBase64())
+                                    // def attachedFile = utils.attachFile(utils.get(obj.docpack.UUID[0]), "Hello4.txt", '', "Hello", str.getBytes())
 }
 
-class Resolution {
-    String Guid
-    String CreatedTime
-    Author Author
-    Author Executor
-    int DecisionId
-    String ResolutionText
-    String ControlDate
-    ArrayList Themes
-    ArrayList Files
+class Resolution {                  // appeal -> resolution
+    String Guid                     // Уникальный идентификатор резолюции todo New field -> GuidSadko
+    String CreatedTime              // Дата поручения todo New field -> CreatedTimeSadko
+    User Author                     // Автор -> who
+    User Executor                   // Исполнитель -> that
+    int DecisionId                  // ID Решения по резолюции -> справочник Decisions todo не используют
+    String ResolutionText           // Текст резолюции -> answer
+    String ControlDate              // Дата контроля todo New field -> ControlDateSadko
+    ArrayList Themes                // Список тем вопросов todo ??????
+    ArrayList Files                 // Список файлов       todo ??????
 }
 
-class Author {
+class User {
     String Guid
     String LastName
     String FirstName
@@ -111,15 +145,15 @@ class Author {
 }
 
 class Theme {
-    String Code
-    String Name
-    String Annotation
+    String Code                     // Код по тематическому классификатору обращений
+    String Name                     // Название вопроса
+    String Annotation               // Анотация к вопросу
 }
 
 class FileData {
-    String Name
-    String Guid
-    String Data
+    String Name                     // Имя файла
+    String Guid                     // Уникальный идентификатор файла
+    String Data                     // Закодированное в строку base64 содержимое файла
 }
 
 class ConnectSADKO {
@@ -328,6 +362,13 @@ def pushResolToDb(Resol resol, Resolution resolution) {
     def obj = ""
 
 }
+//
+//def encoded = "Hello World".bytes.encodeBase64().toString()
+//assert encoded == "SGVsbG8gV29ybGQ="
+//def decoded = new String("SGVsbG8gV29ybGQ=".decodeBase64())
+//assert decoded == "Hello World"
+//
+
 
 prepareSSLConnection()
 def response = (HttpsURLConnection) new URL(connectUrl).openConnection()
@@ -340,7 +381,7 @@ if (response.responseCode == 200) {
         def data = loadInboxData(authorization)
         def urlFields = MappingTypeUrl.getMapFields()
         def count = 0
-        data.each { inbox ->
+        data?.each { inbox ->
             if (count > 0) return false
             InboxCard card = appealProcessing(baseUrl + urlFields.get(inbox.Type) + "/" + inbox.Guid, authorization, inbox.Guid)
             if (card != null) {
@@ -376,7 +417,7 @@ def isMatch = PrepareAddress.checkMatchAddress(mapAddress, address, "р-н.Дз�
 //def res = utils.find('regionAp', [title: 'Бабынинский'])
 //
 //
-////Список домов title -> номер дома
+//Список домов title -> номер дома
 //def houses = utils.find('Location$house', [title: '2'])
 ////return houses[0].stid
 //
