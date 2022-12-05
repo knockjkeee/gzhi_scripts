@@ -7,10 +7,12 @@ import javax.net.ssl.*
 import java.nio.charset.Charset
 import java.security.KeyStore
 import java.util.logging.Logger
+import java.util.regex.Matcher
 
 @Field final Logger logger = Logger.getLogger("") //todo off in web
 
 @Field final JsonSlurper jsonSlurper = new JsonSlurper()
+
 
 
 
@@ -46,82 +48,85 @@ class Resol {                       // appeal
     String CitizenName              // Имя заявителя -> LastName
     String CitizenSurname           // Фамилия заявителя -> FirstName
     String CitizenPatronymic        // Отчество заявителя -> MiddleName
-    String CitizenAddress           // Почтовый адрес заявителя -> oldaddr todo check собрать из дома [house2]+[street2]+room
-                                    // Список домов title -> номер дома
-                                    // def houses = utils.find('Location$house', [title: '2'])
-                                    // Список домов contains -> улица или метод поподания
-                                    // for(def house: houses){
-                                    //      def street = house.stid
-                                    //      try {
-                                    //            def isFind = street.title.contains("Аристово")
-                                    //          if(isFind){
-                                    //                return house.UUID
-                                    //          }
-                                    //      } catch (Exception e) {}
-                                    //   return null
-                                    //}
+    String CitizenAddress
+    // Почтовый адрес заявителя -> oldaddr todo check собрать из дома [house2]+[street2]+room
+    // Список домов title -> номер дома
+    // def houses = utils.find('Location$house', [title: '2'])
+    // Список домов contains -> улица или метод поподания
+    // for(def house: houses){
+    //      def street = house.stid
+    //      try {
+    //            def isFind = street.title.contains("Аристово")
+    //          if(isFind){
+    //                return house.UUID
+    //          }
+    //      } catch (Exception e) {}
+    //   return null
+    //}
     String CitizenAddressPost       // Индекс почтового адреса заявителя -> indexAddr
     int CitizenAddressAreaId        // ID района по почтовому адресу заявителя -> справочник CitizenAddArea [regionAp]
     String CitizenPhone             // Телефон заявителя -> phoneNumber
     String CitizenEmail             // E-Mail заявителя -> email
-    int CitizenSocialStatusId       // ID социальный статус гражданина -> справочник CitizenSocStat todo не используют
-    int CitizenBenefitId            // ID льготный состав гражданина -> справочник CitizenBenefit todo не используют
-    int CitizenAnswerSendTypeId     // Желаемый способ ответа гражданину -> спарвочник CitizenAnSeTy [ansType]
-    int LetterTypeId                // ID типа обращения -> справочник LetterTypes [typeAp]
-    int DocumentTypeId              // ID вида обращения -> справочник DocumentTypes [viewAp]
-    int CorrespondentId             // ID корреспондента -> справочник Correspondents [reporter]
+    String CitizenSocialStatusId    // ID социальный статус гражданина -> справочник CitizenSocStat todo не используют
+    String CitizenBenefitId         // ID льготный состав гражданина -> справочник CitizenBenefit todo не используют
+    String CitizenAnswerSendTypeId  // Желаемый способ ответа гражданину -> спарвочник CitizenAnSeTy [ansType]
+    String LetterTypeId             // ID типа обращения -> справочник LetterTypes [typeAp]
+    String DocumentTypeId           // ID вида обращения -> справочник DocumentTypes [viewAp]
+    String CorrespondentId          // ID корреспондента -> справочник Correspondents [reporter]
     String LetterNumber             // Номер сопроводительного письма -> MessageNumber
     String ControlOrgSendDate       // Дата отправки из организации -> MessageDate
     String ReceiveDate              // Дата поступления todo New field -> ReceiveDateSadko
-    int DeliveryTypeId              // Тип доставки -> справочник DeliveryTypes [deliveryType]
-    int ConsiderationFormId         // Форма рассмотрения -> справочник ConsiderationF todo не используют
-    String ReceivedFrom             // Поступило из -> todo fromAp справочник Место поступления или receivedfrom (строка) !!!!!!!!!!!!
+    String DeliveryTypeId           // Тип доставки -> справочник DeliveryTypes [deliveryType]
+    String ConsiderationFormId      // Форма рассмотрения -> справочник ConsiderationF todo не используют
+    String ReceivedFrom
+    // Поступило из -> todo fromAp справочник Место поступления или receivedfrom (строка) !!!!!!!!!!!!
     String RegistrationNumber       // Регистрационный номер -> todo New field -> RegistrationNumberSadko
     String RegistrationDate         // Дата регистрации -> registerDate
-    int PreviousCardsCount          // Количество предыдущих обращений todo New field -> PreviousCardsCountSadko
+    String PreviousCardsCount       // Количество предыдущих обращений todo New field -> PreviousCardsCountSadko
     String DocSheetNumber           // Количество листов документа  todo New field -> DocSheetNumberSadko
     String DocCopyNumber            // Количество листов приложения todo New field -> DocCopyNumberSadko
-    int ConcernedCitizensNumber     // Количество заинтересованных todo New field -> ConcernedCitizensNumberSadko
+    String ConcernedCitizensNumber  // Количество заинтересованных todo New field -> ConcernedCitizensNumberSadko
     String Message                  // Текст обращения -> descrip
     ArrayList Files                 // Файлы -> Павет документов [docpack]
-                                    // Прикрепление файла к объекту*/
-                                    // def attachedFile = utils.attachFile(obj, fileName, contentType, description, data)
-                                    // def str = new String(base64.decodeBase64())
-                                    // def attachedFile = utils.attachFile(utils.get(obj.docpack.UUID[0]), "Hello4.txt", '', "Hello", str.getBytes())
+    // Прикрепление файла к объекту*/
+    // def attachedFile = utils.attachFile(obj, fileName, contentType, description, data)
+    // def str = new String(base64.decodeBase64())
+    // def attachedFile = utils.attachFile(utils.get(obj.docpack.UUID[0]), "Hello4.txt", '', "Hello", str.getBytes())
 }
 
 class Letter {
     String CitizenName              // Имя заявителя -> LastName
     String CitizenSurname           // Фамилия заявителя -> FirstName
     String CitizenPatronymic        // Отчество заявителя -> MiddleName
-    String CitizenAddress           // Почтовый адрес заявителя -> oldaddr todo check собрать из дома [house2]+[street2]+room
-                                    // Список домов title -> номер дома
-                                    // def houses = utils.find('Location$house', [title: '2'])
-                                    // Список домов contains -> улица или метод поподания
-                                    // for(def house: houses){
-                                    //      def street = house.stid
-                                    //      try {
-                                    //            def isFind = street.title.contains("Аристово")
-                                    //          if(isFind){
-                                    //                return house.UUID
-                                    //          }
-                                    //      } catch (Exception e) {}
-                                    //   return null
-                                    //}
+    String CitizenAddress
+    // Почтовый адрес заявителя -> oldaddr todo check собрать из дома [house2]+[street2]+room
+    // Список домов title -> номер дома
+    // def houses = utils.find('Location$house', [title: '2'])
+    // Список домов contains -> улица или метод поподания
+    // for(def house: houses){
+    //      def street = house.stid
+    //      try {
+    //            def isFind = street.title.contains("Аристово")
+    //          if(isFind){
+    //                return house.UUID
+    //          }
+    //      } catch (Exception e) {}
+    //   return null
+    //}
     String CitizenAddressPost       // Индекс почтового адреса заявителя -> indexAddr
-    int CitizenSocialStatusId       // ID социальный статус гражданина -> справочник CitizenSocStat todo не используют
-    int CitizenAnswerSendTypeId     // Желаемый способ ответа гражданину -> спарвочник CitizenAnSeTy [ansType]
+    String CitizenSocialStatusId    // ID социальный статус гражданина -> справочник CitizenSocStat todo не используют
+    String CitizenAnswerSendTypeId  // Желаемый способ ответа гражданину -> спарвочник CitizenAnSeTy [ansType]
     String CitizenPhone             // Телефон заявителя -> phoneNumber
     String CitizenEmail             // E-Mail заявителя -> email
     String LetterNumber             // Номер сопроводительного письма -> MessageNumber
     String ReceiveDate              // Дата поступления todo New field -> ReceiveDateSadko
-    int DeliveryTypeId              // Тип доставки -> справочник DeliveryTypes [deliveryType]
+    String DeliveryTypeId           // Тип доставки -> справочник DeliveryTypes [deliveryType]
     String Message                  // Текст обращения -> descrip
     ArrayList Files                 // Файлы -> Павет документов [docpack]
-                                    // Прикрепление файла к объекту*/
-                                    // def attachedFile = utils.attachFile(obj, fileName, contentType, description, data)
-                                    // def str = new String(base64.decodeBase64())
-                                    // def attachedFile = utils.attachFile(utils.get(obj.docpack.UUID[0]), "Hello4.txt", '', "Hello", str.getBytes())
+    // Прикрепление файла к объекту*/
+    // def attachedFile = utils.attachFile(obj, fileName, contentType, description, data)
+    // def str = new String(base64.decodeBase64())
+    // def attachedFile = utils.attachFile(utils.get(obj.docpack.UUID[0]), "Hello4.txt", '', "Hello", str.getBytes())
 }
 
 class Resolution {                  // appeal -> resolution
@@ -129,7 +134,7 @@ class Resolution {                  // appeal -> resolution
     String CreatedTime              // Дата поручения todo New field -> CreatedTimeSadko
     User Author                     // Автор -> who
     User Executor                   // Исполнитель -> that
-    int DecisionId                  // ID Решения по резолюции -> справочник Decisions todo не используют
+    String DecisionId               // ID Решения по резолюции -> справочник Decisions todo не используют
     String ResolutionText           // Текст резолюции -> answer
     String ControlDate              // Дата контроля todo New field -> ControlDateSadko
     ArrayList Themes                // Список тем вопросов todo ??????
@@ -176,8 +181,8 @@ class Inbox {
 }
 
 class PrepareAddress {
-    static Map<String, String> sliceAddres(String addres) {
-        def slice = addres.split(',')
+    static Map<String, String> sliceAddress(String address) {
+        def slice = address.split(',')
         Map<String, String> map = new HashMap<>()
         for (def val : slice) {
             def item = val.trim()
@@ -221,24 +226,6 @@ class PrepareAddress {
         return map
     }
 
-    static boolean sliceContainsAddres(String address, String value) {
-        def split = address.split(', ')
-        for (def item : split) {
-            def strings = item.split('\\.')
-            if (strings == null || strings.size() == 0) return false
-            if (strings.size() > 1) {
-                if (value.contains(strings[1])) {
-                    return true
-                }
-            } else {
-                if (value.contains(strings[0])) {
-                    return true
-                }
-            }
-        }
-        return false
-    }
-
     static String getStreet(Map<String, String> map) {
         def street = ['ул', 'пр', 'пл', 'пер']
         for (def val : street) {
@@ -255,12 +242,103 @@ class PrepareAddress {
         return null
     }
 
-    static boolean checkMatchAddress(Map<String, String> map, String address, String value) {
-        def isContains = sliceContainsAddres(address, value)
-        if (isContains) return isContains
-        def locally = getLocality(map)
-        if (locally == null) return false
-        return value.contains(locally)
+    static boolean sliceContainsAddressDep(String address, String value) {
+        def split = address.split(', ')
+        for (def item : split) {
+            def strings = item.split('\\.')
+            if (strings == null || strings.size() == 0) return false
+            if (strings.size() > 1) {
+                if (value.contains(strings[1].trim())) {
+                    return true
+                }
+            } else {
+                if (value.contains(strings[0].trim())) {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    static boolean sliceContainsAddress(String address, String value) {
+        def split = address.split(' ')
+        for (def item : split) {
+            if (item.size() < 4) continue
+            def strings = item.split(',')
+            if (strings == null || strings.size() == 0) return false
+            if (strings.size() > 1) {
+                if (value.contains(strings[1].trim())) {
+                    return true
+                }
+            } else {
+                if (value.contains(strings[0].trim())) {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    static boolean checkMatchAddress(String city, String address, String valueDb) {
+        def isContainsMain = valueDb.contains(city.trim())
+        if (isContainsMain) return isContainsMain
+        def isContains = sliceContainsAddress(address, valueDb)
+        return isContains
+    }
+
+    def static matchAddress(String predicate, String address, boolean isString = false, boolean isHome = false) {
+
+        def preparePattern = isString ? "(\\s|\\.)([А-Я][а-я]+)" : "(\\.|\\s?)\\s*?(\\d+[.*?]*)"
+//    def preparePatternRevers = isString ? "([\\wА-Яа-я\\-]+)(\\s|\\.)?" : "(\\d+[.*?]*)\\s*?"
+        def preparePatternRevers = isString ? "[A-Я][a-я]+(\\s|\\.)" : "(\\d+[.*?]*)\\s*?"
+
+        def patternFirstNum = "\\s(\\d+[.*?]*)"
+//    def patternFirstNum = "[1-9]\\d*"
+        def pattern = "${predicate}${preparePattern}"
+        def patternRevers = "${preparePatternRevers}${predicate}"
+
+        def matches = (address =~ pattern)
+        if (matches.size() > 0) {
+            if (isString) {
+                return checkMatchString(matches)
+            } else {
+                return checkMatchNumber(matches)
+            }
+        } else {
+            def matchesRevers = (address =~ patternRevers)
+            if (matchesRevers.size() > 0) {
+                if (isString) {
+                    return checkMatchString(matchesRevers, true)
+                } else {
+                    return checkMatchNumber(matchesRevers)
+                }
+            } else {
+                def matchesFirstNum = (address =~ patternFirstNum)
+                if (!isString && matchesFirstNum.size() > 0) {
+                    String res = isHome ? matchesFirstNum[0][matchesFirstNum[0].size() - 1] : matchesFirstNum[0][0]
+                    if (res.isInteger()) {
+                        def number = res as Integer
+                        return number
+                    }
+                }
+            }
+        }
+    }
+
+    def static checkMatchNumber(Matcher matches) {
+        def number = null
+        matches[0].each { String val ->
+            if (val.isInteger()) {
+                number = val as Integer
+            }
+        }
+        return number
+    }
+
+    def static checkMatchString(Matcher matches, boolean isRevers = false) {
+        def list = matches[0] as ArrayList
+        String res = isRevers && list.size() > 1 ? list[0].split(" ")[0] : list[list.size() - 1]
+        return res
     }
 }
 
@@ -346,9 +424,11 @@ InboxCard appealProcessing(String url, String token, String guid) {
 
 def prepareToDb(InboxCard card) {
     if (card.Card != null) {
+        //println(card.Card.CitizenAddress)
         pushResolToDb(card.Card, card.Resolution)
     }
     if (card.Letter != null) {
+        //println(card.Letter.CitizenAddress)
         pushLetterToDb(card.Letter)
     }
 }
@@ -357,11 +437,11 @@ def pushLetterToDb(Letter letter) {
 
 }
 
-
 def pushResolToDb(Resol resol, Resolution resolution) {
     def obj = ""
 
 }
+
 //
 //def encoded = "Hello World".bytes.encodeBase64().toString()
 //assert encoded == "SGVsbG8gV29ybGQ="
@@ -369,6 +449,18 @@ def pushResolToDb(Resol resol, Resolution resolution) {
 //assert decoded == "Hello World"
 //
 
+def address = "Россия, Октябрьский , Псков, Город Кондово Проспект Октябрьский Д 36 к. 1 литера А 203 квар почтовый индекс 180000"
+//def address = "Иванково деревня,  Качурина, Дом. 14, Дом. 14"
+def house = PrepareAddress.matchAddress("(д|Д|дом|Дом|ДОМ)", address)
+def home = PrepareAddress.matchAddress("(кв|КВ|квартира|Квартира|квар|Квар)", address, false, true)
+def city = PrepareAddress.matchAddress("(Город|город|г|гор|Гор|деревня|Деревня|дер|Дер|д|Д|c|C|село|Село)", address, true)
+def isMatchAddress = PrepareAddress.checkMatchAddress(city as String, address, "р-н.Октябрьский, г.Кондрово,") // value = street.title
+
+
+//def mapAddress = PrepareAddress.sliceAddres(address)
+//def streetName = PrepareAddress.getStreet(mapAddress)
+//def houseNumber = mapAddress.get('д')
+//def isMatch = PrepareAddress.checkMatchAddress(mapAddress, address, "р-н.Дзержинский, г.Кондрово,") // value = street.title
 
 prepareSSLConnection()
 def response = (HttpsURLConnection) new URL(connectUrl).openConnection()
@@ -399,11 +491,7 @@ if (response.responseCode == 200) {
 
 
 // example prepare address
-def address = "обл.Калужская, р-н.Дзержинский, г.Кондрово, ул.Пушкина, д.728, кв.170, Додо д."
-def mapAddress = PrepareAddress.sliceAddres(address)
-def streetName = PrepareAddress.getStreet(mapAddress)
-def houseNumber = mapAddress.get('д')
-def isMatch = PrepareAddress.checkMatchAddress(mapAddress, address, "р-н.Дзержинский, г.Кондрово,") // value = street.title
+//def address = "обл.Калужская, р-н.Дзержинский, г.Кондрово, ул.Пушкина, д.728, кв.170, Додо д."
 
 
 //
