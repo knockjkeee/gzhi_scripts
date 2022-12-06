@@ -48,21 +48,20 @@ class Resol {                       // appeal
     String CitizenName              // Имя заявителя -> LastName
     String CitizenSurname           // Фамилия заявителя -> FirstName
     String CitizenPatronymic        // Отчество заявителя -> MiddleName
-    String CitizenAddress
-    // Почтовый адрес заявителя -> oldaddr todo check собрать из дома [house2]+[street2]+room
-    // Список домов title -> номер дома
-    // def houses = utils.find('Location$house', [title: '2'])
-    // Список домов contains -> улица или метод поподания
-    // for(def house: houses){
-    //      def street = house.stid
-    //      try {
-    //            def isFind = street.title.contains("Аристово")
-    //          if(isFind){
-    //                return house.UUID
-    //          }
-    //      } catch (Exception e) {}
-    //   return null
-    //}
+    String CitizenAddress           // Почтовый адрес заявителя -> oldaddr todo check собрать из дома [house2]+[street2]+room
+                                    // Список домов title -> номер дома
+                                    // def houses = utils.find('Location$house', [title: '2'])
+                                    // Список домов contains -> улица или метод поподания
+                                    // for(def house: houses){
+                                    //      def street = house.stid
+                                    //      try {
+                                    //            def isFind = street.title.contains("Аристово")
+                                    //          if(isFind){
+                                    //                return house.UUID
+                                    //          }
+                                    //      } catch (Exception e) {}
+                                    //   return null
+                                    //}
     String CitizenAddressPost       // Индекс почтового адреса заявителя -> indexAddr
     int CitizenAddressAreaId        // ID района по почтовому адресу заявителя -> справочник CitizenAddArea [regionAp]
     String CitizenPhone             // Телефон заявителя -> phoneNumber
@@ -88,31 +87,30 @@ class Resol {                       // appeal
     String ConcernedCitizensNumber  // Количество заинтересованных todo New field -> ConcernedCitizensNumberSadko
     String Message                  // Текст обращения -> descrip
     ArrayList Files                 // Файлы -> Павет документов [docpack]
-    // Прикрепление файла к объекту*/
-    // def attachedFile = utils.attachFile(obj, fileName, contentType, description, data)
-    // def str = new String(base64.decodeBase64())
-    // def attachedFile = utils.attachFile(utils.get(obj.docpack.UUID[0]), "Hello4.txt", '', "Hello", str.getBytes())
+                                    // Прикрепление файла к объекту*/
+                                    // def attachedFile = utils.attachFile(obj, fileName, contentType, description, data)
+                                    // def str = new String(base64.decodeBase64())
+                                    // def attachedFile = utils.attachFile(utils.get(obj.docpack.UUID[0]), "Hello4.txt", '', "Hello", str.getBytes())
 }
 
 class Letter {
     String CitizenName              // Имя заявителя -> LastName
     String CitizenSurname           // Фамилия заявителя -> FirstName
     String CitizenPatronymic        // Отчество заявителя -> MiddleName
-    String CitizenAddress
-    // Почтовый адрес заявителя -> oldaddr todo check собрать из дома [house2]+[street2]+room
-    // Список домов title -> номер дома
-    // def houses = utils.find('Location$house', [title: '2'])
-    // Список домов contains -> улица или метод поподания
-    // for(def house: houses){
-    //      def street = house.stid
-    //      try {
-    //            def isFind = street.title.contains("Аристово")
-    //          if(isFind){
-    //                return house.UUID
-    //          }
-    //      } catch (Exception e) {}
-    //   return null
-    //}
+    String CitizenAddress           // Почтовый адрес заявителя -> oldaddr todo check собрать из дома [house2]+[street2]+room
+                                    // Список домов title -> номер дома
+                                    // def houses = utils.find('Location$house', [title: '2'])
+                                    // Список домов contains -> улица или метод поподания
+                                    // for(def house: houses){
+                                    //      def street = house.stid
+                                    //      try {
+                                    //            def isFind = street.title.contains("Аристово")
+                                    //          if(isFind){
+                                    //                return house.UUID
+                                    //          }
+                                    //      } catch (Exception e) {}
+                                    //   return null
+                                    //}
     String CitizenAddressPost       // Индекс почтового адреса заявителя -> indexAddr
     String CitizenSocialStatusId    // ID социальный статус гражданина -> справочник CitizenSocStat todo не используют
     String CitizenAnswerSendTypeId  // Желаемый способ ответа гражданину -> спарвочник CitizenAnSeTy [ansType]
@@ -123,10 +121,10 @@ class Letter {
     String DeliveryTypeId           // Тип доставки -> справочник DeliveryTypes [deliveryType]
     String Message                  // Текст обращения -> descrip
     ArrayList Files                 // Файлы -> Павет документов [docpack]
-    // Прикрепление файла к объекту*/
-    // def attachedFile = utils.attachFile(obj, fileName, contentType, description, data)
-    // def str = new String(base64.decodeBase64())
-    // def attachedFile = utils.attachFile(utils.get(obj.docpack.UUID[0]), "Hello4.txt", '', "Hello", str.getBytes())
+                                    // Прикрепление файла к объекту*/
+                                    // def attachedFile = utils.attachFile(obj, fileName, contentType, description, data)
+                                    // def str = new String(base64.decodeBase64())
+                                    // def attachedFile = utils.attachFile(utils.get(obj.docpack.UUID[0]), "Hello4.txt", '', "Hello", str.getBytes())
 }
 
 class Resolution {                  // appeal -> resolution
@@ -376,6 +374,11 @@ def prepareRequestPOST(HttpsURLConnection response) {
     outStream.close()
 }
 
+def checkAddress(String address) {
+    def response = ["curl", "-X", "POST", "-H", "Content-Type: application/json", "-H", TOKEN, "-H", SECRET, "-d", ["\"" + address + "\""], "https://cleaner.dadata.ru/api/v1/clean/address"].execute().text
+    return response
+}
+
 HttpsURLConnection prepareConnectWithToken(String url, String token) {
     def response = (HttpsURLConnection) new URL(url).openConnection()
     response.setRequestProperty("Authorization", token);
@@ -449,18 +452,29 @@ def pushResolToDb(Resol resol, Resolution resolution) {
 //assert decoded == "Hello World"
 //
 
-def address = "Россия, Октябрьский , Псков, Город Кондово Проспект Октябрьский Д 36 к. 1 литера А 203 квар почтовый индекс 180000"
+//def address = "Россия, Октябрьский , Псков, Город Кондово Проспект Октябрьский Д 36 к. 1 литера А 203 квар почтовый индекс 180000"
+def address = "3. Россия, г Калуга, ул Салтыкова-Щедрина, д 72, кв 15"
+def parse = jsonSlurper.parseText(checkAddress(address))
+def houseData, house_fias_id, homeData, cityData
+if (parse instanceof ArrayList) {
+    if (parse[0].house.isInteger()) {
+        houseData = parse[0].house as Integer
+    }
+    house_fias_id = parse[0].house_fias_id
+    cityData = parse[0].city
+    if (parse[0].flat.isInteger()) {
+        homeData = parse[0].flat as Integer
+    }
+
+}
+
+
 //def address = "Иванково деревня,  Качурина, Дом. 14, Дом. 14"
 def house = PrepareAddress.matchAddress("(д|Д|дом|Дом|ДОМ)", address)
 def home = PrepareAddress.matchAddress("(кв|КВ|квартира|Квартира|квар|Квар)", address, false, true)
 def city = PrepareAddress.matchAddress("(Город|город|г|гор|Гор|деревня|Деревня|дер|Дер|д|Д|c|C|село|Село)", address, true)
 def isMatchAddress = PrepareAddress.checkMatchAddress(city as String, address, "р-н.Октябрьский, г.Кондрово,") // value = street.title
 
-
-//def mapAddress = PrepareAddress.sliceAddres(address)
-//def streetName = PrepareAddress.getStreet(mapAddress)
-//def houseNumber = mapAddress.get('д')
-//def isMatch = PrepareAddress.checkMatchAddress(mapAddress, address, "р-н.Дзержинский, г.Кондрово,") // value = street.title
 
 prepareSSLConnection()
 def response = (HttpsURLConnection) new URL(connectUrl).openConnection()
