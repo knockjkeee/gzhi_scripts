@@ -6,6 +6,8 @@ import groovy.transform.Field
 import javax.net.ssl.*
 import java.nio.charset.Charset
 import java.security.KeyStore
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.logging.Logger
 import java.util.regex.Matcher
 
@@ -14,7 +16,7 @@ import java.util.regex.Matcher
 @Field final JsonSlurper jsonSlurper = new JsonSlurper()
 
 
-
+interface Card{}
 
 enum MappingTypeUrl {
     resolution("resolution", "InboxResol"),
@@ -41,7 +43,7 @@ class InboxCard {
     Letter Letter
 }
 
-class Resol {                       // appeal
+class Resol implements Card{                       // appeal
 
     String Guid                     // Уникальный идентификатор резолюции todo check New field -> GuidSadko
     // Заявитель
@@ -93,7 +95,7 @@ class Resol {                       // appeal
                                     // def attachedFile = utils.attachFile(utils.get(obj.docpack.UUID[0]), "Hello4.txt", '', "Hello", str.getBytes())
 }
 
-class Letter {
+class Letter implements Card{
     String CitizenName              // Имя заявителя -> LastName
     String CitizenSurname           // Фамилия заявителя -> FirstName
     String CitizenPatronymic        // Отчество заявителя -> MiddleName
@@ -374,7 +376,7 @@ def prepareRequestPOST(HttpsURLConnection response) {
     outStream.close()
 }
 
-def checkAddress(String address) {
+def checkAddressByDadata(String address) {
     def response = ["curl", "-X", "POST", "-H", "Content-Type: application/json", "-H", TOKEN, "-H", SECRET, "-d", ["\"" + address + "\""], "https://cleaner.dadata.ru/api/v1/clean/address"].execute().text
     return response
 }
@@ -425,24 +427,155 @@ InboxCard appealProcessing(String url, String token, String guid) {
     return card
 }
 
-def prepareToDb(InboxCard card) {
+private Date parseDateTimeFromString(obj) {
+    return Date.parse(DATE_TIME_FORMAT, LocalDateTime.parse(obj.toString().replaceAll("\\s", "T")).format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT)).toString())
+}
+
+boolean prepareToDb(InboxCard card) {
     if (card.Card != null) {
-        //println(card.Card.CitizenAddress)
-        pushResolToDb(card.Card, card.Resolution)
+//        println(card.Card.CitizenAddress)
+//        println(card.Card.CitizenAddressPost)
+//        def obj = pushResolToDb(card.Card, card.Resolution)
+        def obj = pushToMediumTable(card.Card)
+        return true
     }
     if (card.Letter != null) {
-        //println(card.Letter.CitizenAddress)
-        pushLetterToDb(card.Letter)
+//        println(card.Letter.CitizenAddress)
+//        println(card.Letter.CitizenAddressPost)
+        def obj = pushToMediumTable(card.Letter)
+//        def obj = pushLetterToDb(card.Letter)
+        return true
     }
+    return false
+}
+
+
+def pushToMediumTable(Card card){
+    Map<Object, Object> updateData = new HashMap<>()
+    if (card instanceof Resol){
+        updateData.put('Guid', card.Guid)
+    }
+    updateData.put('CitizenName', card.CitizenName)
+    updateData.put('CitizenSurname', card.CitizenSurname)
+    updateData.put('CitizenPatrony', card.CitizenPatronymic)
+    updateData.put('CitizenAddress', card.CitizenAddress)
+    updateData.put('CitizenPhone', card.CitizenPhone)
+    updateData.put('CitizenEmail', card.CitizenEmail)
+    updateData.put('Status', utils.find('SadkoStatus', [code:'code1']))
+    String codeName = card instanceof Resol ? 'InboxResol': 'InboxLetter'
+    updateData.put('typeAppeal', utils.find('SadkoTypeApp', [code:codeName]))
+    updateData.put('Files', card.Files.size())
+    updateData.put('ReceiveDate', card.ReceiveDate == null
+            ? null
+            : parseDateTimeFromString(card.ReceiveDate))
+    updateData.put('Message', card.Message)
+    updateData.put('title', card.CitizenName + " " + card.CitizenSurname + " " + card.CitizenPatronymic)
+
+
+    def obj
+    try {
+        if (card instanceof Resol) {
+            obj = utils.find('SadkoObj$SadkoAppeal', [Guid: resol.Guid, typeAppeal:utils.find('SadkoTypeApp', [code:codeName])])[0]
+        }else{
+            obj = utils.find('SadkoObj$SadkoAppeal', [CitizenName: letter.CitizenName, CitizenSurname: letter.CitizenSurname,'CitizenPatrony': letter.CitizenPatronymic, typeAppeal:utils.find('SadkoTypeApp', [code:codeName])])[0]
+        }
+    } catch (Exception e) {
+        if (card instanceof Resol) {
+            logger.error("${LOG_PREFIX} Ошибка поиска обьекта в таблице \"Садко Обращения\":, guid - ${card.Guid}, ошибка: ${e.message}")
+        }else{
+            logger.error("${LOG_PREFIX} Ошибка поиска обьекта в таблице \"Садко Обращения\", \"InboxLetter\", Адрес записи: ${card.CitizenAddress}, ошибка: ${e.message}")
+        }
+    }
+
+    if (obj == null){
+        utils.create('SadkoObj$SadkoAppeal', updateData);
+        if (card instanceof Resol) {
+            logger.info("${LOG_PREFIX} Обьект в таблице \"Садко Обращения\", \"InboxResol\" создан, ID записи: ${card.Guid}")
+        }else{
+            logger.info("${LOG_PREFIX} Обьект в таблице \"Садко Обращения\", \"InboxLetter\"  создан, Адрес записи: ${card.CitizenAddress}")
+        }
+
+    }else{
+        utils.edit(obj.UUID, updateData)
+        if (card instanceof Resol) {
+            logger.info("${LOG_PREFIX} Обьект в таблице \"Садко Обращения\" , \"InboxResol\" обновлен, ID записи: ${card.Guid}")
+        }else{
+            logger.info("${LOG_PREFIX} Обьект в таблице \"Садко Обращения\", \"InboxLetter\" обновлен, Адрес записи:${card.CitizenAddress}")
+        }
+    }
+    return obj
 }
 
 def pushLetterToDb(Letter letter) {
+    Map<Object, Object> updateData = new HashMap<>()
+    updateData.put('CitizenName', letter.CitizenName)
+    updateData.put('CitizenSurname', letter.CitizenSurname)
+    updateData.put('CitizenPatrony', letter.CitizenPatronymic)
+    updateData.put('CitizenAddress', letter.CitizenAddress)
+    updateData.put('CitizenPhone', letter.CitizenPhone)
+    updateData.put('CitizenEmail', letter.CitizenEmail)
+    updateData.put('Status', utils.find('SadkoStatus', [code:'code1']))
+    updateData.put('typeAppeal', utils.find('SadkoTypeApp', [code:'InboxLetter']))
+    updateData.put('Files', letter.Files.size())
+    updateData.put('ReceiveDate', letter.ReceiveDate == null
+            ? null
+            : parseDateTimeFromString(letter.ReceiveDate))
+    updateData.put('Message', letter.Message)
+    updateData.put('title', letter.CitizenName + " " + letter.CitizenSurname + " " + letter.CitizenPatronymic)
 
+    def obj
+    try {
+        obj = utils.find('SadkoObj$SadkoAppeal', [CitizenName: letter.CitizenName, CitizenSurname: letter.CitizenSurname,'CitizenPatrony': letter.CitizenPatronymic, typeAppeal:utils.find('SadkoTypeApp', [code:'InboxLetter'])])[0]
+    } catch (Exception e) {
+        logger.error("${LOG_PREFIX} Ошибка поиска обьекта в таблице \"Садко Обращения\", \"InboxLetter\", Адрес записи: ${letter.CitizenAddress}, ошибка: ${e.message}")
+    }
+
+    if (obj == null){
+        utils.create('SadkoObj$SadkoAppeal', updateData);
+        logger.info("${LOG_PREFIX} Обьект в таблице \"Садко Обращения\", \"InboxLetter\"  создан, Адрес записи: ${letter.CitizenAddress}")
+
+    }else{
+        utils.edit(obj.UUID, updateData)
+        logger.info("${LOG_PREFIX} Обьект в таблице \"Садко Обращения\", \"InboxLetter\" обновлен, Адрес записи:${letter.CitizenAddress}")
+    }
+    return obj
 }
 
 def pushResolToDb(Resol resol, Resolution resolution) {
-    def obj = ""
+    Map<Object, Object> updateData = new HashMap<>()
+    updateData.put('Guid', resol.Guid)
+    updateData.put('CitizenName', resol.CitizenName)
+    updateData.put('CitizenSurname', resol.CitizenSurname)
+    updateData.put('CitizenPatrony', resol.CitizenPatronymic)
+    updateData.put('CitizenAddress', resol.CitizenAddress)
+    updateData.put('CitizenPhone', resol.CitizenPhone)
+    updateData.put('CitizenEmail', resol.CitizenEmail)
+    updateData.put('Status', utils.find('SadkoStatus', [code:'code1']))
+    updateData.put('typeAppeal', utils.find('SadkoTypeApp', [code:'InboxResol']))
+    updateData.put('Files', resol.Files.size())
+    updateData.put('ReceiveDate', resol.ReceiveDate == null
+            ? null
+            : parseDateTimeFromString(resol.ReceiveDate))
+    updateData.put('Message', resol.Message)
+    updateData.put('title', resol.CitizenName + " " + resol.CitizenSurname + " " + resol.CitizenPatronymic)
 
+
+    def obj
+    try {
+        obj = utils.find('SadkoObj$SadkoAppeal', [Guid: resol.Guid, typeAppeal:utils.find('SadkoTypeApp', [code:'InboxResol'])])[0]
+    } catch (Exception e) {
+        logger.error("${LOG_PREFIX} Ошибка поиска обьекта в таблице \"Садко Обращения\":, guid - ${resol.Guid}, ошибка: ${e.message}")
+    }
+
+    if (obj == null){
+        utils.create('SadkoObj$SadkoAppeal', updateData);
+        logger.info("${LOG_PREFIX} Обьект в таблице \"Садко Обращения\", \"InboxResol\" создан, ID записи: ${resol.Guid}")
+
+    }else{
+        utils.edit(obj.UUID, updateData)
+        logger.info("${LOG_PREFIX} Обьект в таблице \"Садко Обращения\" , \"InboxResol\" обновлен, ID записи: ${resol.Guid}")
+    }
+    return obj
 }
 
 //
@@ -453,19 +586,25 @@ def pushResolToDb(Resol resol, Resolution resolution) {
 //
 
 //def address = "Россия, Октябрьский , Псков, Город Кондово Проспект Октябрьский Д 36 к. 1 литера А 203 квар почтовый индекс 180000"
-def address = "3. Россия, г Калуга, ул Салтыкова-Щедрина, д 72, кв 15"
-def parse = jsonSlurper.parseText(checkAddress(address))
+//def address = "3. Россия, г Калуга, ул Салтыкова-Щедрина, д 72, кв 15"
+def address = "деревня Иванково,  Качурина, д 14 24924"
+def parse = jsonSlurper.parseText(checkAddressByDadata(address))
 def houseData, house_fias_id, homeData, cityData
 if (parse instanceof ArrayList) {
-    if (parse[0].house.isInteger()) {
-        houseData = parse[0].house as Integer
+    if (parse[0].house != null){
+        String house = parse[0].house
+        if(house.isInteger()) {
+            houseData = house as Integer
+        }
     }
     house_fias_id = parse[0].house_fias_id
     cityData = parse[0].city
-    if (parse[0].flat.isInteger()) {
-        homeData = parse[0].flat as Integer
+    if (parse[0].flat != null){
+        String flat = parse[0].flat
+        if(flat.isInteger()) {
+            homeData = flat as Integer
+        }
     }
-
 }
 
 
@@ -488,10 +627,10 @@ if (response.responseCode == 200) {
         def urlFields = MappingTypeUrl.getMapFields()
         def count = 0
         data?.each { inbox ->
-            if (count > 0) return false
+//            if (count > 0) return false
             InboxCard card = appealProcessing(baseUrl + urlFields.get(inbox.Type) + "/" + inbox.Guid, authorization, inbox.Guid)
             if (card != null) {
-                prepareToDb(card)
+                boolean isLoad = prepareToDb(card)
             }
             logger.info("${LOG_PREFIX} Обращение, c атрибутами: тип - ${inbox.Type}, guid - ${inbox.Guid}, загружено")
             count++
