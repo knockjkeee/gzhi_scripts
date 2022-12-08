@@ -6,14 +6,13 @@ import groovy.transform.Field
 import javax.net.ssl.*
 import java.nio.charset.Charset
 import java.security.KeyStore
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.logging.Logger
 import java.util.regex.Matcher
 
 @Field final Logger logger = Logger.getLogger("") //todo off in web
-
-@Field final JsonSlurper jsonSlurper = new JsonSlurper()
 
 
 interface Card{}
@@ -41,16 +40,18 @@ class InboxCard {
     Resol Card
     Resolution Resolution
     Letter Letter
+    def Guid
 }
 
-class Resol implements Card{                       // appeal
+class Resol implements Card{        // appeal
 
-    String Guid                     // Уникальный идентификатор резолюции todo check New field -> GuidSadko
+    def prepareAddress
+    String Guid                     //[OK] Уникальный идентификатор резолюции todo check New field -> GuidSadko
     // Заявитель
-    String CitizenName              // Имя заявителя -> LastName
-    String CitizenSurname           // Фамилия заявителя -> FirstName
-    String CitizenPatronymic        // Отчество заявителя -> MiddleName
-    String CitizenAddress           // Почтовый адрес заявителя -> oldaddr todo check собрать из дома [house2]+[street2]+room
+    String CitizenName              //[OK] Имя заявителя -> LastName
+    String CitizenSurname           //[OK] Фамилия заявителя -> FirstName
+    String CitizenPatronymic        //[OK] Отчество заявителя -> MiddleName
+    String CitizenAddress           //[OK] Почтовый адрес заявителя -> oldaddr todo check собрать из дома [house2]+[street2]+room
                                     // Список домов title -> номер дома
                                     // def houses = utils.find('Location$house', [title: '2'])
                                     // Список домов contains -> улица или метод поподания
@@ -64,30 +65,29 @@ class Resol implements Card{                       // appeal
                                     //      } catch (Exception e) {}
                                     //   return null
                                     //}
-    String CitizenAddressPost       // Индекс почтового адреса заявителя -> indexAddr
-    int CitizenAddressAreaId        // ID района по почтовому адресу заявителя -> справочник CitizenAddArea [regionAp]
-    String CitizenPhone             // Телефон заявителя -> phoneNumber
-    String CitizenEmail             // E-Mail заявителя -> email
-    String CitizenSocialStatusId    // ID социальный статус гражданина -> справочник CitizenSocStat todo не используют
-    String CitizenBenefitId         // ID льготный состав гражданина -> справочник CitizenBenefit todo не используют
-    String CitizenAnswerSendTypeId  // Желаемый способ ответа гражданину -> спарвочник CitizenAnSeTy [ansType]
-    String LetterTypeId             // ID типа обращения -> справочник LetterTypes [typeAp]
-    String DocumentTypeId           // ID вида обращения -> справочник DocumentTypes [viewAp]
-    String CorrespondentId          // ID корреспондента -> справочник Correspondents [reporter]
-    String LetterNumber             // Номер сопроводительного письма -> MessageNumber
-    String ControlOrgSendDate       // Дата отправки из организации -> MessageDate
+    String CitizenAddressPost       //[OK] Индекс почтового адреса заявителя -> indexAddr
+    int CitizenAddressAreaId        //[OK] ID района по почтовому адресу заявителя -> справочник CitizenAddArea [regionAp]
+    String CitizenPhone             //[OK] Телефон заявителя -> phoneNumber
+    String CitizenEmail             //[OK] E-Mail заявителя -> email
+    String CitizenSocialStatusId    //[Х] ID социальный статус гражданина -> справочник CitizenSocStat todo не используют
+    String CitizenBenefitId         //[Х] ID льготный состав гражданина -> справочник CitizenBenefit todo не используют
+    String CitizenAnswerSendTypeId  //[OK] Желаемый способ ответа гражданину -> спарвочник CitizenAnSeTy [ansType]
+    String LetterTypeId             //[OK] ID типа обращения -> справочник LetterTypes [typeAp]
+    String DocumentTypeId           //[OK] ID вида обращения -> справочник DocumentTypes [viewAp]
+    String CorrespondentId          //[OK] ID корреспондента -> справочник Correspondents [reporter]
+    String LetterNumber             //[OK] Номер сопроводительного письма -> MessageNumber
+    String ControlOrgSendDate       //[OK] Дата отправки из организации -> MessageDate
     String ReceiveDate              // Дата поступления todo New field -> ReceiveDateSadko
-    String DeliveryTypeId           // Тип доставки -> справочник DeliveryTypes [deliveryType]
-    String ConsiderationFormId      // Форма рассмотрения -> справочник ConsiderationF todo не используют
-    String ReceivedFrom
-    // Поступило из -> todo fromAp справочник Место поступления или receivedfrom (строка) !!!!!!!!!!!!
+    String DeliveryTypeId           //[OK] Тип доставки -> справочник DeliveryTypes [deliveryType]
+    String ConsiderationFormId      //[Х] Форма рассмотрения -> справочник ConsiderationF todo не используют
+    String ReceivedFrom             //[OK] Поступило из -> todo fromAp справочник Место поступления или receivedfrom (строка) !!!!!!!!!!!!
     String RegistrationNumber       // Регистрационный номер -> todo New field -> RegistrationNumberSadko
-    String RegistrationDate         // Дата регистрации -> registerDate
+    String RegistrationDate         //[OK] Дата регистрации -> registerDate
     String PreviousCardsCount       // Количество предыдущих обращений todo New field -> PreviousCardsCountSadko
     String DocSheetNumber           // Количество листов документа  todo New field -> DocSheetNumberSadko
     String DocCopyNumber            // Количество листов приложения todo New field -> DocCopyNumberSadko
     String ConcernedCitizensNumber  // Количество заинтересованных todo New field -> ConcernedCitizensNumberSadko
-    String Message                  // Текст обращения -> descrip
+    String Message                  //[OK] Текст обращения -> descrip
     ArrayList Files                 // Файлы -> Павет документов [docpack]
                                     // Прикрепление файла к объекту*/
                                     // def attachedFile = utils.attachFile(obj, fileName, contentType, description, data)
@@ -96,6 +96,7 @@ class Resol implements Card{                       // appeal
 }
 
 class Letter implements Card{
+    def prepareAddress
     String CitizenName              // Имя заявителя -> LastName
     String CitizenSurname           // Фамилия заявителя -> FirstName
     String CitizenPatronymic        // Отчество заявителя -> MiddleName
@@ -279,18 +280,20 @@ class PrepareAddress {
         return false
     }
 
-    static boolean checkMatchAddress(String city, String address, String valueDb) {
-        def isContainsMain = valueDb.contains(city.trim())
+    static boolean checkMatchAddress(String street, String address, String valueDb) {
+        def isContainsMain = street == null ? false :valueDb.contains(street.trim())
         if (isContainsMain) return isContainsMain
         def isContains = sliceContainsAddress(address, valueDb)
         return isContains
     }
 
     def static matchAddress(String predicate, String address, boolean isString = false, boolean isHome = false) {
-
+        //([А-Я][а-я]+(-?[А-Я][а-я]+)?)
         def preparePattern = isString ? "(\\s|\\.)([А-Я][а-я]+)" : "(\\.|\\s?)\\s*?(\\d+[.*?]*)"
+//        def preparePattern = isString ? "(\\s|\\.)([А-Я][а-я]+(-?[А-Я][а-я]+)?)" : "(\\.|\\s?)\\s*?(\\d+[.*?]*)"
 //    def preparePatternRevers = isString ? "([\\wА-Яа-я\\-]+)(\\s|\\.)?" : "(\\d+[.*?]*)\\s*?"
         def preparePatternRevers = isString ? "[A-Я][a-я]+(\\s|\\.)" : "(\\d+[.*?]*)\\s*?"
+//        def preparePatternRevers = isString ? "([А-Я][а-я]+(-?[А-Я][а-я]+)?)(\\s|\\.)" : "(\\d+[.*?]*)\\s*?"
 
         def patternFirstNum = "\\s(\\d+[.*?]*)"
 //    def patternFirstNum = "[1-9]\\d*"
@@ -376,8 +379,8 @@ def prepareRequestPOST(HttpsURLConnection response) {
     outStream.close()
 }
 
-def checkAddressByDadata(String address) {
-    def response = ["curl", "-X", "POST", "-H", "Content-Type: application/json", "-H", TOKEN, "-H", SECRET, "-d", ["\"" + address + "\""], "https://cleaner.dadata.ru/api/v1/clean/address"].execute().text
+def checkAddressByDadata(String address, int index ) {
+    def response = ["curl", "-X", "POST", "-H", "Content-Type: application/json", "-H", TOKEN[index], "-H", SECRET[index], "-d", ["\"" + address + "\""], "https://cleaner.dadata.ru/api/v1/clean/address"].execute().text
     return response
 }
 
@@ -430,25 +433,144 @@ InboxCard appealProcessing(String url, String token, String guid) {
 private Date parseDateTimeFromString(obj) {
     return Date.parse(DATE_TIME_FORMAT, LocalDateTime.parse(obj.toString().replaceAll("\\s", "T")).format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT)).toString())
 }
+private Date parseDateFromString(obj) {
+    return Date.parse(DATE_FORMAT, LocalDate.parse(obj.toString()).format(DateTimeFormatter.ofPattern(DATE_FORMAT)).toString())
+}
 
 boolean prepareToDb(InboxCard card) {
     if (card.Card != null) {
-//        println(card.Card.CitizenAddress)
-//        println(card.Card.CitizenAddressPost)
-//        def obj = pushResolToDb(card.Card, card.Resolution)
         def obj = pushToMediumTable(card.Card)
+        def appeal = createAppeal(card.Card)
+        if (appeal[0] != null){
+            Map<Object, Object> updateData = new HashMap<>()
+            updateData.put('Appeal', appeal[0])
+            if (appeal[1]){
+                updateData.put('Status', utils.find('SadkoStatus', [code:'code2']))
+            }else{
+                updateData.put('Status', utils.find('SadkoStatus', [code:'code5']))
+            }
+            utils.edit(obj.UUID, updateData)
+        }
         return true
     }
     if (card.Letter != null) {
-//        println(card.Letter.CitizenAddress)
-//        println(card.Letter.CitizenAddressPost)
         def obj = pushToMediumTable(card.Letter)
-//        def obj = pushLetterToDb(card.Letter)
         return true
     }
     return false
 }
 
+def getCatalogItem(String catalogName, String directoryName, String id){
+    def catalog = utils.find('SadkoCatalog$' + catalogName, [itemId:id])[0]
+    String itemName = catalog.itemMap == 'empty' ? catalog.itemName : catalog.itemMap
+    def directoryItem = utils.find(directoryName, [title: itemName])[0]
+    return directoryItem
+}
+
+String checkFieldOnNull(String item){
+    return item == null ? "Текст отсутсвует" : item
+}
+
+def GetObjHouse(String address){
+    //Первый этап поиска с помощью Dadata.ru
+    def parse = jsonSlurper.parseText(checkAddressByDadata(address, 0))
+    if (parse instanceof Map){
+        parse = jsonSlurper.parseText(checkAddressByDadata(address, 1))
+    }
+    def houseData, house_fias_id, homeData, cityData
+    if (parse instanceof ArrayList) {
+        if (parse[0].house != null){
+            String house = parse[0].house
+            if(house.isInteger()) {
+                houseData = house as Integer
+            }
+        }
+        house_fias_id = parse[0].house_fias_id
+        cityData = parse[0].city
+        if (parse[0].flat != null){
+            String flat = parse[0].flat
+            if(flat.isInteger()) {
+                homeData = flat as Integer
+            }
+        }
+    }
+    if (house_fias_id != null) {
+        def obj = utils.find('Location$house', [fias: house_fias_id])[0]
+        if (obj != null) return [obj, house_fias_id, homeData]
+    }
+
+    //Второй этап поиска с помощью регулярный выражений
+    def house = PrepareAddress.matchAddress("(д|Д|дом|Дом|ДОМ)", address)
+    def home = PrepareAddress.matchAddress("(кв|КВ|квартира|Квартира|квар|Квар)", address, false, true)
+    def street = PrepareAddress.matchAddress("(ул|Ул|улица|Улица|у|У|УЛИЦА|пр|Пр|Проспект|проспект|Просп|просп|пер|Пер|переулок|Переулок)", address, true)
+    def city = PrepareAddress.matchAddress("(Город|город|г|гор|Гор|деревня|Деревня|дер|Дер|д|Д|c|C|село|Село)", address, true)
+
+    if (house != null){
+        def houses = utils.find('Location$house', [title: house])
+        if (houses == null) return null
+        for(def val: houses){
+            def str = val.stid
+            try {
+                def isFind = PrepareAddress.checkMatchAddress(street != null ? street as String : city as String, address, str)
+                if(isFind){
+                    return  [val, val.fias, house]
+                }
+            } catch (Exception ignored) {}
+        }
+    }
+    return null
+}
+
+def createAppeal(Resol card){
+    boolean isCorrectlyAddress = false
+    Map<Object, Object> updateData = new HashMap<>()
+    updateData.put('GuidSadko', card.Guid)
+    updateData.put('LastName', card.CitizenName)
+    updateData.put('FirstName', card.CitizenSurname)
+    updateData.put('MiddleName', card.CitizenPatronymic)
+    updateData.put('phoneNumber', card.CitizenPhone)
+    updateData.put('email', card.CitizenEmail)
+
+    def house = GetObjHouse(card.CitizenAddress)
+    if (house != null){
+        isCorrectlyAddress =  true
+        updateData.put('house2', house[0])
+        updateData.put('street2', house[0].stid)
+        updateData.put('indexAddr', card.CitizenAddressPost.trim())
+        updateData.put('regionAp', house[0].region)
+        updateData.put('organization', house[0].pdid)
+        updateData.put('typepd', house[0].pdid.pdtype)
+//        typepd
+        //updateData.put('fiasHouse', house[1])
+        updateData.put('room', house[2])
+    }
+
+    updateData.put('ansType', getCatalogItem('CitizenAnSeTy', 'ansWay', card.CitizenAnswerSendTypeId))
+    updateData.put('typeAp', getCatalogItem('LetterTypes', 'appealType', card.LetterTypeId))
+    updateData.put('viewAp', getCatalogItem('DocumentTypes', 'viewAp', card.DocumentTypeId))
+    updateData.put('reporter', getCatalogItem('Correspondents', 'reporter', card.CorrespondentId))
+    updateData.put('deliveryType', getCatalogItem('DeliveryTypes', 'deliveryType', card.DeliveryTypeId))
+
+    updateData.put('MessageNumber', card.LetterNumber)
+    if (card.ControlOrgSendDate != null){
+        updateData.put('MessageDate', parseDateTimeFromString(card.ControlOrgSendDate))
+    }
+    if (card.ControlOrgSendDate != null) {
+        updateData.put('registerDate', parseDateTimeFromString(card.RegistrationDate))
+    }
+    updateData.put('descrip', checkFieldOnNull(card.Message))
+
+    updateData.put('fromAp', utils.find('entryPlace', [code: 'en14'])) //TODO Базовое значение -> ГИС САДКО.ОГ
+    updateData.put('themes', utils.find('themeInv', [code: 'no'])) //TODO значения нет в САДКО
+
+    def obj = utils.create('appeal$appeal', updateData);
+    if (obj != null){
+        logger.info("${LOG_PREFIX} Обьект в таблице \"Обращения\", \"InboxResol\" создан, ID записи: ${obj.UUID}, Номер: ${obj.title}")
+    }else{
+        logger.info("${LOG_PREFIX} Обьект в таблице \"Обращения\", \"InboxResol\" не создан, GUID записи: ${card.Guid}")
+    }
+    return [obj, isCorrectlyAddress]
+}
 
 def pushToMediumTable(Card card){
     Map<Object, Object> updateData = new HashMap<>()
@@ -465,19 +587,18 @@ def pushToMediumTable(Card card){
     String codeName = card instanceof Resol ? 'InboxResol': 'InboxLetter'
     updateData.put('typeAppeal', utils.find('SadkoTypeApp', [code:codeName]))
     updateData.put('Files', card.Files.size())
-    updateData.put('ReceiveDate', card.ReceiveDate == null
-            ? null
-            : parseDateTimeFromString(card.ReceiveDate))
+    if (card.ReceiveDate != null){
+        updateData.put('ReceiveDate', parseDateTimeFromString(card.ReceiveDate))
+    }
     updateData.put('Message', card.Message)
     updateData.put('title', card.CitizenName + " " + card.CitizenSurname + " " + card.CitizenPatronymic)
-
 
     def obj
     try {
         if (card instanceof Resol) {
-            obj = utils.find('SadkoObj$SadkoAppeal', [Guid: resol.Guid, typeAppeal:utils.find('SadkoTypeApp', [code:codeName])])[0]
+            obj = utils.find('SadkoObj$SadkoAppeal', [Guid: card.Guid, typeAppeal: utils.find('SadkoTypeApp', [code:codeName])])[0]
         }else{
-            obj = utils.find('SadkoObj$SadkoAppeal', [CitizenName: letter.CitizenName, CitizenSurname: letter.CitizenSurname,'CitizenPatrony': letter.CitizenPatronymic, typeAppeal:utils.find('SadkoTypeApp', [code:codeName])])[0]
+            obj = utils.find('SadkoObj$SadkoAppeal', [CitizenName: card.CitizenName, CitizenSurname: card.CitizenSurname,'CitizenPatrony': card.CitizenPatronymic, typeAppeal: utils.find('SadkoTypeApp', [code:codeName])])[0]
         }
     } catch (Exception e) {
         if (card instanceof Resol) {
@@ -488,7 +609,7 @@ def pushToMediumTable(Card card){
     }
 
     if (obj == null){
-        utils.create('SadkoObj$SadkoAppeal', updateData);
+        obj = utils.create('SadkoObj$SadkoAppeal', updateData);
         if (card instanceof Resol) {
             logger.info("${LOG_PREFIX} Обьект в таблице \"Садко Обращения\", \"InboxResol\" создан, ID записи: ${card.Guid}")
         }else{
@@ -496,84 +617,12 @@ def pushToMediumTable(Card card){
         }
 
     }else{
-        utils.edit(obj.UUID, updateData)
+        obj = utils.edit(obj.UUID, updateData)
         if (card instanceof Resol) {
             logger.info("${LOG_PREFIX} Обьект в таблице \"Садко Обращения\" , \"InboxResol\" обновлен, ID записи: ${card.Guid}")
         }else{
             logger.info("${LOG_PREFIX} Обьект в таблице \"Садко Обращения\", \"InboxLetter\" обновлен, Адрес записи:${card.CitizenAddress}")
         }
-    }
-    return obj
-}
-
-def pushLetterToDb(Letter letter) {
-    Map<Object, Object> updateData = new HashMap<>()
-    updateData.put('CitizenName', letter.CitizenName)
-    updateData.put('CitizenSurname', letter.CitizenSurname)
-    updateData.put('CitizenPatrony', letter.CitizenPatronymic)
-    updateData.put('CitizenAddress', letter.CitizenAddress)
-    updateData.put('CitizenPhone', letter.CitizenPhone)
-    updateData.put('CitizenEmail', letter.CitizenEmail)
-    updateData.put('Status', utils.find('SadkoStatus', [code:'code1']))
-    updateData.put('typeAppeal', utils.find('SadkoTypeApp', [code:'InboxLetter']))
-    updateData.put('Files', letter.Files.size())
-    updateData.put('ReceiveDate', letter.ReceiveDate == null
-            ? null
-            : parseDateTimeFromString(letter.ReceiveDate))
-    updateData.put('Message', letter.Message)
-    updateData.put('title', letter.CitizenName + " " + letter.CitizenSurname + " " + letter.CitizenPatronymic)
-
-    def obj
-    try {
-        obj = utils.find('SadkoObj$SadkoAppeal', [CitizenName: letter.CitizenName, CitizenSurname: letter.CitizenSurname,'CitizenPatrony': letter.CitizenPatronymic, typeAppeal:utils.find('SadkoTypeApp', [code:'InboxLetter'])])[0]
-    } catch (Exception e) {
-        logger.error("${LOG_PREFIX} Ошибка поиска обьекта в таблице \"Садко Обращения\", \"InboxLetter\", Адрес записи: ${letter.CitizenAddress}, ошибка: ${e.message}")
-    }
-
-    if (obj == null){
-        utils.create('SadkoObj$SadkoAppeal', updateData);
-        logger.info("${LOG_PREFIX} Обьект в таблице \"Садко Обращения\", \"InboxLetter\"  создан, Адрес записи: ${letter.CitizenAddress}")
-
-    }else{
-        utils.edit(obj.UUID, updateData)
-        logger.info("${LOG_PREFIX} Обьект в таблице \"Садко Обращения\", \"InboxLetter\" обновлен, Адрес записи:${letter.CitizenAddress}")
-    }
-    return obj
-}
-
-def pushResolToDb(Resol resol, Resolution resolution) {
-    Map<Object, Object> updateData = new HashMap<>()
-    updateData.put('Guid', resol.Guid)
-    updateData.put('CitizenName', resol.CitizenName)
-    updateData.put('CitizenSurname', resol.CitizenSurname)
-    updateData.put('CitizenPatrony', resol.CitizenPatronymic)
-    updateData.put('CitizenAddress', resol.CitizenAddress)
-    updateData.put('CitizenPhone', resol.CitizenPhone)
-    updateData.put('CitizenEmail', resol.CitizenEmail)
-    updateData.put('Status', utils.find('SadkoStatus', [code:'code1']))
-    updateData.put('typeAppeal', utils.find('SadkoTypeApp', [code:'InboxResol']))
-    updateData.put('Files', resol.Files.size())
-    updateData.put('ReceiveDate', resol.ReceiveDate == null
-            ? null
-            : parseDateTimeFromString(resol.ReceiveDate))
-    updateData.put('Message', resol.Message)
-    updateData.put('title', resol.CitizenName + " " + resol.CitizenSurname + " " + resol.CitizenPatronymic)
-
-
-    def obj
-    try {
-        obj = utils.find('SadkoObj$SadkoAppeal', [Guid: resol.Guid, typeAppeal:utils.find('SadkoTypeApp', [code:'InboxResol'])])[0]
-    } catch (Exception e) {
-        logger.error("${LOG_PREFIX} Ошибка поиска обьекта в таблице \"Садко Обращения\":, guid - ${resol.Guid}, ошибка: ${e.message}")
-    }
-
-    if (obj == null){
-        utils.create('SadkoObj$SadkoAppeal', updateData);
-        logger.info("${LOG_PREFIX} Обьект в таблице \"Садко Обращения\", \"InboxResol\" создан, ID записи: ${resol.Guid}")
-
-    }else{
-        utils.edit(obj.UUID, updateData)
-        logger.info("${LOG_PREFIX} Обьект в таблице \"Садко Обращения\" , \"InboxResol\" обновлен, ID записи: ${resol.Guid}")
     }
     return obj
 }
@@ -587,32 +636,40 @@ def pushResolToDb(Resol resol, Resolution resolution) {
 
 //def address = "Россия, Октябрьский , Псков, Город Кондово Проспект Октябрьский Д 36 к. 1 литера А 203 квар почтовый индекс 180000"
 //def address = "3. Россия, г Калуга, ул Салтыкова-Щедрина, д 72, кв 15"
-def address = "деревня Иванково,  Качурина, д 14 24924"
-def parse = jsonSlurper.parseText(checkAddressByDadata(address))
-def houseData, house_fias_id, homeData, cityData
-if (parse instanceof ArrayList) {
-    if (parse[0].house != null){
-        String house = parse[0].house
-        if(house.isInteger()) {
-            houseData = house as Integer
-        }
-    }
-    house_fias_id = parse[0].house_fias_id
-    cityData = parse[0].city
-    if (parse[0].flat != null){
-        String flat = parse[0].flat
-        if(flat.isInteger()) {
-            homeData = flat as Integer
-        }
-    }
-}
 
-
-//def address = "Иванково деревня,  Качурина, Дом. 14, Дом. 14"
-def house = PrepareAddress.matchAddress("(д|Д|дом|Дом|ДОМ)", address)
-def home = PrepareAddress.matchAddress("(кв|КВ|квартира|Квартира|квар|Квар)", address, false, true)
-def city = PrepareAddress.matchAddress("(Город|город|г|гор|Гор|деревня|Деревня|дер|Дер|д|Д|c|C|село|Село)", address, true)
-def isMatchAddress = PrepareAddress.checkMatchAddress(city as String, address, "р-н.Октябрьский, г.Кондрово,") // value = street.title
+//def address = "Россия, г Калуга, ул Салтыкова-Щедрина, д 72, кв 15"
+////def address = "Россия, Октябрьский , Псков, Город Кондово Проспект Октябрьский Д 36 к. 1 литера А 203 квар почтовый индекс 180000"
+////def address = "Иванково дер,  Качурина"
+//def parse = jsonSlurper.parseText(checkAddressByDadata(address, 0))
+//if (parse instanceof Map){
+//    parse = jsonSlurper.parseText(checkAddressByDadata(address, 1))
+//}
+//
+//def houseData, house_fias_id, homeData, cityData
+//if (parse instanceof ArrayList) {
+//    if (parse[0].house != null){
+//        String house = parse[0].house
+//        if(house.isInteger()) {
+//            houseData = house as Integer
+//        }
+//    }
+//    house_fias_id = parse[0].house_fias_id
+//    cityData = parse[0].city
+//    if (parse[0].flat != null){
+//        String flat = parse[0].flat
+//        if(flat.isInteger()) {
+//            homeData = flat as Integer
+//        }
+//    }
+//}
+//
+//
+////def address = "Иванково дер,  Качурина"
+//def house = PrepareAddress.matchAddress("(д|Д|дом|Дом|ДОМ)", address)
+//def home = PrepareAddress.matchAddress("(кв|КВ|квартира|Квартира|квар|Квар)", address, false, true)
+//def city = PrepareAddress.matchAddress("(Город|город|г|гор|Гор|деревня|Деревня|дер|Дер|д|Д|c|C|село|Село)", address, true)
+//def street = PrepareAddress.matchAddress("(ул|Ул|улица|Улица|у|У|УЛИЦА|пр|Пр|Проспект|проспект|Просп|просп|пер|Пер|переулок|Переулок)", address, true)
+//def isMatchAddress = PrepareAddress.checkMatchAddress(street as String, address, "р-н.Октябрьский, г.Кондрово,") // value = street.title
 
 
 prepareSSLConnection()
@@ -629,8 +686,11 @@ if (response.responseCode == 200) {
         data?.each { inbox ->
 //            if (count > 0) return false
             InboxCard card = appealProcessing(baseUrl + urlFields.get(inbox.Type) + "/" + inbox.Guid, authorization, inbox.Guid)
-            if (card != null) {
+            if (card != null && inbox.Guid == 'D0A7927F-02B1-40AF-B027-55A7B633EC3C') {
+//            if (card != null) {
+                card.Guid = inbox.Guid
                 boolean isLoad = prepareToDb(card)
+                //2022-05-06T16:24:05.4853
             }
             logger.info("${LOG_PREFIX} Обращение, c атрибутами: тип - ${inbox.Type}, guid - ${inbox.Guid}, загружено")
             count++
@@ -641,38 +701,3 @@ if (response.responseCode == 200) {
 } else {
     logger.error("${LOG_PREFIX} Ошибка в запросе при получении токена, код ошибки: ${response.responseCode}, ошибка: ${response.errorStream.text}")
 }
-
-
-// example prepare address
-//def address = "обл.Калужская, р-н.Дзержинский, г.Кондрово, ул.Пушкина, д.728, кв.170, Додо д."
-
-
-//
-//def objj = utils.find('appeal', [title: 'Т-8162-22'])
-////return obj.house2.region.UUID
-////return obj.street2
-////return objj.house2.UUID
-//
-//
-////Район обращения -> obj.house2.region.UUID title -> район
-//def res = utils.find('regionAp', [title: 'Бабынинский'])
-//
-//
-//Список домов title -> номер дома
-//def houses = utils.find('Location$house', [title: '2'])
-////return houses[0].stid
-//
-////Список домов contains -> улица
-//for(def house: houses){
-//    def street = house.stid
-//    try {
-//        def isFind = street.title.contains("Аристово")
-//        if(isFind){
-//            return house.UUID
-//        }
-//    } catch (Exception e) {
-//    }
-//
-//
-//    //return false
-//}
