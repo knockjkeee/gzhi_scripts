@@ -77,7 +77,7 @@ class Resol implements Card{        // appeal
     String CorrespondentId          //[OK] ID корреспондента -> справочник Correspondents [reporter]
     String LetterNumber             //[OK] Номер сопроводительного письма -> MessageNumber
     String ControlOrgSendDate       //[OK] Дата отправки из организации -> MessageDate
-    String ReceiveDate              // Дата поступления todo New field -> ReceiveDateSadko
+    String ReceiveDate              // Дата поступления todo New field -> ReceiveDateSadko ??? registerDate
     String DeliveryTypeId           //[OK] Тип доставки -> справочник DeliveryTypes [deliveryType]
     String ConsiderationFormId      //[Х] Форма рассмотрения -> справочник ConsiderationF todo не используют
     String ReceivedFrom             //[OK] Поступило из -> todo fromAp справочник Место поступления или receivedfrom (строка) !!!!!!!!!!!!
@@ -437,10 +437,46 @@ private Date parseDateFromString(obj) {
     return Date.parse(DATE_FORMAT, LocalDate.parse(obj.toString()).format(DateTimeFormatter.ofPattern(DATE_FORMAT)).toString())
 }
 
+
+//boolean prepareToDb(InboxCard card) {
+//    if (card.Card != null) {
+//        def obj = pushToMediumTable(card.Card)
+//        def appeal = createAppealResolt(card.Card)
+//        if (appeal[0] != null){
+//            Map<Object, Object> updateData = new HashMap<>()
+//            updateData.put('Appeal', appeal[0])
+//            if (appeal[1]){
+//                updateData.put('Status', utils.find('SadkoStatus', [code:'code2']))
+//            }else{
+//                updateData.put('Status', utils.find('SadkoStatus', [code:'code5']))
+//            }
+//            utils.edit(obj.UUID, updateData)
+//        }
+//        return true
+//    }
+//    if (card.Letter != null) {
+//        def obj = pushToMediumTable(card.Letter)
+//        def appeal = createAppealLetter(card.Letter)
+//        if (appeal[0] != null){
+//            Map<Object, Object> updateData = new HashMap<>()
+//            updateData.put('Appeal', appeal[0])
+//            if (appeal[1]){
+//                updateData.put('Status', utils.find('SadkoStatus', [code:'code2']))
+//            }else{
+//                updateData.put('Status', utils.find('SadkoStatus', [code:'code5']))
+//            }
+//            utils.edit(obj.UUID, updateData)
+//        }
+//        return true
+//    }
+//    return false
+//}
+
 boolean prepareToDb(InboxCard card) {
-    if (card.Card != null) {
-        def obj = pushToMediumTable(card.Card)
-        def appeal = createAppeal(card.Card)
+
+    if (card.Card != null || card.Letter != null){
+        def obj = pushToMediumTable(card.Card != null ? card.Card : card.Letter)
+        def appeal = createAppeal(card.Card != null ? card.Card : card.Letter)
         if (appeal[0] != null){
             Map<Object, Object> updateData = new HashMap<>()
             updateData.put('Appeal', appeal[0])
@@ -451,10 +487,6 @@ boolean prepareToDb(InboxCard card) {
             }
             utils.edit(obj.UUID, updateData)
         }
-        return true
-    }
-    if (card.Letter != null) {
-        def obj = pushToMediumTable(card.Letter)
         return true
     }
     return false
@@ -521,7 +553,57 @@ def GetObjHouse(String address){
     return null
 }
 
-def createAppeal(Resol card){
+def createAppeal(Card card){
+    boolean isCorrectlyAddress = false
+    Map<Object, Object> updateData = new HashMap<>()
+    if (card instanceof Resol) {
+        updateData.put('GuidSadko', card.Guid)
+        updateData.put('typeAp', getCatalogItem('LetterTypes', 'appealType', card.LetterTypeId))
+        updateData.put('viewAp', getCatalogItem('DocumentTypes', 'viewAp', card.DocumentTypeId))
+        updateData.put('reporter', getCatalogItem('Correspondents', 'reporter', card.CorrespondentId))
+        if (card.ControlOrgSendDate != null) {
+            updateData.put('MessageDate', parseDateTimeFromString(card.ControlOrgSendDate))
+        }
+        if (card.ControlOrgSendDate != null) {
+            updateData.put('registerDate', parseDateTimeFromString(card.RegistrationDate))
+        }
+    }
+    updateData.put('LastName', card.CitizenName)
+    updateData.put('FirstName', card.CitizenSurname)
+    updateData.put('MiddleName', card.CitizenPatronymic)
+    updateData.put('phoneNumber', card.CitizenPhone)
+    updateData.put('email', card.CitizenEmail)
+
+    def house = GetObjHouse(card.CitizenAddress)
+    if (house != null){
+        isCorrectlyAddress =  true
+        updateData.put('house2', house[0])
+        updateData.put('street2', house[0].stid)
+        updateData.put('indexAddr', card.CitizenAddressPost.trim())
+        updateData.put('regionAp', house[0].region)
+        updateData.put('organization', house[0].pdid)
+        updateData.put('typepd', house[0].pdid.pdtype)
+        //updateData.put('fiasHouse', house[1])
+        updateData.put('room', house[2])
+    }
+
+    updateData.put('ansType', getCatalogItem('CitizenAnSeTy', 'ansWay', card.CitizenAnswerSendTypeId))
+    updateData.put('deliveryType', getCatalogItem('DeliveryTypes', 'deliveryType', card.DeliveryTypeId))
+    updateData.put('MessageNumber', card.LetterNumber)
+    updateData.put('descrip', checkFieldOnNull(card.Message))
+    updateData.put('fromAp', utils.find('entryPlace', [code: 'en14']))  //TODO Базовое значение -> ГИС САДКО.ОГ
+    updateData.put('themes', utils.find('themeInv', [code: 'no']))      //TODO значения нет в САДКО
+
+    def obj = utils.create('appeal$appeal', updateData);
+    if (obj != null){
+        logger.info("${LOG_PREFIX} Обьект в таблице \"Обращения\", \"InboxResol\" создан, ID записи: ${obj.UUID}, Номер: ${obj.title}")
+    }else{
+        logger.info("${LOG_PREFIX} Обьект в таблице \"Обращения\", \"InboxResol\" не создан, GUID записи: ${card.Guid}")
+    }
+    return [obj, isCorrectlyAddress]
+}
+
+def createAppealResolt(Resol card){
     boolean isCorrectlyAddress = false
     Map<Object, Object> updateData = new HashMap<>()
     updateData.put('GuidSadko', card.Guid)
@@ -540,7 +622,6 @@ def createAppeal(Resol card){
         updateData.put('regionAp', house[0].region)
         updateData.put('organization', house[0].pdid)
         updateData.put('typepd', house[0].pdid.pdtype)
-//        typepd
         //updateData.put('fiasHouse', house[1])
         updateData.put('room', house[2])
     }
@@ -558,16 +639,65 @@ def createAppeal(Resol card){
     if (card.ControlOrgSendDate != null) {
         updateData.put('registerDate', parseDateTimeFromString(card.RegistrationDate))
     }
-    updateData.put('descrip', checkFieldOnNull(card.Message))
 
-    updateData.put('fromAp', utils.find('entryPlace', [code: 'en14'])) //TODO Базовое значение -> ГИС САДКО.ОГ
-    updateData.put('themes', utils.find('themeInv', [code: 'no'])) //TODO значения нет в САДКО
+    updateData.put('descrip', checkFieldOnNull(card.Message))
+    updateData.put('fromAp', utils.find('entryPlace', [code: 'en14']))  //TODO Базовое значение -> ГИС САДКО.ОГ
+    updateData.put('themes', utils.find('themeInv', [code: 'no']))      //TODO значения нет в САДКО
 
     def obj = utils.create('appeal$appeal', updateData);
     if (obj != null){
         logger.info("${LOG_PREFIX} Обьект в таблице \"Обращения\", \"InboxResol\" создан, ID записи: ${obj.UUID}, Номер: ${obj.title}")
     }else{
         logger.info("${LOG_PREFIX} Обьект в таблице \"Обращения\", \"InboxResol\" не создан, GUID записи: ${card.Guid}")
+    }
+    return [obj, isCorrectlyAddress]
+}
+
+def createAppealLetter(Letter card){
+    boolean isCorrectlyAddress = false
+    Map<Object, Object> updateData = new HashMap<>()
+//    updateData.put('GuidSadko', card.Guid)
+    updateData.put('LastName', card.CitizenName)
+    updateData.put('FirstName', card.CitizenSurname)
+    updateData.put('MiddleName', card.CitizenPatronymic)
+    updateData.put('phoneNumber', card.CitizenPhone)
+    updateData.put('email', card.CitizenEmail)
+
+    def house = GetObjHouse(card.CitizenAddress)
+    if (house != null){
+        isCorrectlyAddress =  true
+        updateData.put('house2', house[0])
+        updateData.put('street2', house[0].stid)
+        updateData.put('indexAddr', card.CitizenAddressPost.trim())
+        updateData.put('regionAp', house[0].region)
+        updateData.put('organization', house[0].pdid)
+        updateData.put('typepd', house[0].pdid.pdtype)
+        //updateData.put('fiasHouse', house[1])
+        updateData.put('room', house[2])
+    }
+
+    updateData.put('ansType', getCatalogItem('CitizenAnSeTy', 'ansWay', card.CitizenAnswerSendTypeId))
+//    updateData.put('typeAp', getCatalogItem('LetterTypes', 'appealType', card.LetterTypeId))
+//    updateData.put('viewAp', getCatalogItem('DocumentTypes', 'viewAp', card.DocumentTypeId))
+//    updateData.put('reporter', getCatalogItem('Correspondents', 'reporter', card.CorrespondentId))
+    updateData.put('deliveryType', getCatalogItem('DeliveryTypes', 'deliveryType', card.DeliveryTypeId))
+
+    updateData.put('MessageNumber', card.LetterNumber)
+//    if (card.ControlOrgSendDate != null){
+//        updateData.put('MessageDate', parseDateTimeFromString(card.ControlOrgSendDate))
+//    }
+//    if (card.ControlOrgSendDate != null) {
+//        updateData.put('registerDate', parseDateTimeFromString(card.RegistrationDate))
+//    }
+    updateData.put('descrip', checkFieldOnNull(card.Message))
+    updateData.put('fromAp', utils.find('entryPlace', [code: 'en14']))  //TODO Базовое значение -> ГИС САДКО.ОГ
+    updateData.put('themes', utils.find('themeInv', [code: 'no']))      //TODO значения нет в САДКО
+
+    def obj = utils.create('appeal$appeal', updateData);
+    if (obj != null){
+        logger.info("${LOG_PREFIX} Обьект в таблице \"Обращения\", \"InboxLetter\" создан, ID записи: ${obj.UUID}, Номер: ${obj.title}")
+    }else{
+        logger.info("${LOG_PREFIX} Обьект в таблице \"Обращения\", \"InboxLetter\" не создан, GUID записи: ${card.Guid}")
     }
     return [obj, isCorrectlyAddress]
 }
@@ -686,8 +816,8 @@ if (response.responseCode == 200) {
         data?.each { inbox ->
 //            if (count > 0) return false
             InboxCard card = appealProcessing(baseUrl + urlFields.get(inbox.Type) + "/" + inbox.Guid, authorization, inbox.Guid)
-            if (card != null && inbox.Guid == 'D0A7927F-02B1-40AF-B027-55A7B633EC3C') {
-//            if (card != null) {
+//            if (card != null && inbox.Guid == 'D0A7927F-02B1-40AF-B027-55A7B633EC3C') {
+            if (card != null) {
                 card.Guid = inbox.Guid
                 boolean isLoad = prepareToDb(card)
                 //2022-05-06T16:24:05.4853
