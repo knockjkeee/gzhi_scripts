@@ -367,7 +367,7 @@ def prepareSSLConnection() {
     HttpsURLConnection.setDefaultHostnameVerifier(new TrustHostnameVerifierInbox())
 }
 
-def prepareRequestPOST(HttpsURLConnection response) {
+def prepareRequestPOSTtoConnect(HttpsURLConnection response) {
     byte[] postData = urlConnectParam.getBytes(Charset.forName("utf-8"));
     response.setDoOutput(true);
     response.setInstanceFollowRedirects(false);
@@ -381,14 +381,32 @@ def prepareRequestPOST(HttpsURLConnection response) {
     outStream.close()
 }
 
-def checkAddressByDadata(String address, int index ) {
-    def response = ["curl", "-X", "POST", "-H", "Content-Type: application/json", "-H", TOKEN[index], "-H", SECRET[index], "-d", ["\"" + address + "\""], "https://cleaner.dadata.ru/api/v1/clean/address"].execute().text
-    return response
+def prepareRequestPOST(HttpsURLConnection response, String data, boolean isConnect = false) {
+    byte[] postData = data.getBytes(Charset.forName("utf-8"));
+    response.setDoOutput(true);
+    response.setInstanceFollowRedirects(false);
+    response.setRequestMethod("POST");
+    if (isConnect){
+        response.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
+    }else{
+        response.setRequestProperty("Content-Type", "application/json-patch+json")
+    }
+    response.setRequestProperty("charset", "utf-8");
+    response.setRequestProperty("Content-Length", Integer.toString(postData.length))
+    response.setUseCaches(false);
+    def outStream = response.getOutputStream()
+    outStream.write(postData)
+    outStream.close()
 }
 
 HttpsURLConnection prepareConnectWithToken(String url, String token) {
     def response = (HttpsURLConnection) new URL(url).openConnection()
     response.setRequestProperty("Authorization", token);
+    return response
+}
+
+def checkAddressByDadata(String address, int index ) {
+    def response = ["curl", "-X", "POST", "-H", "Content-Type: application/json", "-H", TOKEN[index], "-H", SECRET[index], "-d", ["\"" + address + "\""], "https://cleaner.dadata.ru/api/v1/clean/address"].execute().text
     return response
 }
 
@@ -506,7 +524,9 @@ boolean prepareToDb(InboxCard card) {
         def appeal = createAppeal(card.Card != null ? card.Card : card.Letter)
         if (appeal[0] != null){
             Map<Object, Object> updateData = new HashMap<>()
-            updateData.put('Appeal', appeal[0])
+            if (obj.Appeal == null){
+                updateData.put('Appeal', appeal[0])
+            }
             if (appeal[1]){
                 updateData.put('Status', utils.find('SadkoStatus', [code:'code2']))
             }else{
@@ -514,7 +534,6 @@ boolean prepareToDb(InboxCard card) {
             }
             utils.edit(obj.UUID, updateData)
         }
-
         attachmentFiles(card.Card != null ? card.Card : card.Letter, appeal[0])
         return true
     }
@@ -532,10 +551,8 @@ def attachmentFiles(Card card, obj){
                 logger.error("${LOG_PREFIX} Файл с именем ${item.Name} не прикрепился к обращению ${obj.title}")
             }
         }
-
     }
 }
-
 
 def createAppeal(Card card){
     boolean isCorrectlyAddress = false
@@ -697,16 +714,18 @@ def pushToMediumTable(Card card){
 //def isMatchAddress = PrepareAddress.checkMatchAddress(street as String, address, "р-н.Октябрьский, г.Кондрово,") // value = street.title
 
 prepareSSLConnection()
-def response = (HttpsURLConnection) new URL(connectUrl).openConnection()
-prepareRequestPOST(response)
+def connection = (HttpsURLConnection) new URL(connectUrl).openConnection()
+//prepareRequestPOSTtoConnect(connection)
+prepareRequestPOST(connection, urlConnectParam, true)
 
-if (response.responseCode == 200) {
-    ConnectSADKO connect = jsonSlurper.parseText(response.inputStream.text) as ConnectSADKO
+if (connection.responseCode == 200) {
+    ConnectSADKO connect = jsonSlurper.parseText(connection.inputStream.text) as ConnectSADKO
     if (connect.access_token != null) {
         def authorization = connect.token_type + " " + connect.access_token
         def data = loadInboxData(authorization)
         def urlFields = MappingTypeUrl.getMapFields()
         def count = 0
+        def guidList = []
         data?.each { inbox ->
 //            if (count > 0) return false
             InboxCard card = appealProcessing(baseUrl + urlFields.get(inbox.Type) + "/" + inbox.Guid, authorization, inbox.Guid)
@@ -715,14 +734,26 @@ if (response.responseCode == 200) {
             if (card != null) {
                 card.Guid = inbox.Guid
                 boolean isLoad = prepareToDb(card)
-                //2022-05-06T16:24:05.4853
+                if (isLoad){
+                    guidList.add("\"" + inbox.Guid + "\"")
+                    logger.info("${LOG_PREFIX} Обращение, c атрибутами: тип - ${inbox.Type}, guid - ${inbox.Guid}, загружено")
+                }
+
             }
-            logger.info("${LOG_PREFIX} Обращение, c атрибутами: тип - ${inbox.Type}, guid - ${inbox.Guid}, загружено")
             count++
         }
+       // def res = (HttpsURLConnection) new URL(ulr).openConnection()
+        def res = prepareConnectWithToken(baseUrl + 'InboxProcessingConfirmation', authorization)
+        prepareRequestPOST(res, guidList.toString())
+        if (res.responseCode == 200){
+            logger.info("${LOG_PREFIX} Процедура подтверждения обработки обращений прошло успешно")
+        }else{
+            logger.error("${LOG_PREFIX} Ошибка в запросе при подтверждении обработки обращений, код ошибки: ${connection.responseCode}, ошибка: ${connection.errorStream.text}")
+        }
+
     } else {
         logger.error("${LOG_PREFIX} Токен отсутствует, дальнейшая загрузка прерывается")
     }
 } else {
-    logger.error("${LOG_PREFIX} Ошибка в запросе при получении токена, код ошибки: ${response.responseCode}, ошибка: ${response.errorStream.text}")
+    logger.error("${LOG_PREFIX} Ошибка в запросе при получении токена, код ошибки: ${connection.responseCode}, ошибка: ${connection.errorStream.text}")
 }
