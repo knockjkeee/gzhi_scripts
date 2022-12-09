@@ -16,8 +16,7 @@ import java.util.regex.Matcher
 
 def version = 0.1
 
-
-interface Card{}
+interface iCard {}
 
 enum MappingTypeUrl {
     resolution("resolution", "InboxResol"),
@@ -45,7 +44,7 @@ class InboxCard {
     def Guid
 }
 
-class Resol implements Card{        // appeal
+class Resol implements iCard{        // appeal
 
     def prepareAddress
     String Guid                     //[OK] Уникальный идентификатор резолюции todo check New field -> GuidSadko
@@ -68,7 +67,7 @@ class Resol implements Card{        // appeal
                                     //   return null
                                     //}
     String CitizenAddressPost       //[OK] Индекс почтового адреса заявителя -> indexAddr
-    int CitizenAddressAreaId        //[OK] ID района по почтовому адресу заявителя -> справочник CitizenAddArea [regionAp]
+    String CitizenAddressAreaId     //[OK] ID района по почтовому адресу заявителя -> справочник CitizenAddArea [regionAp]
     String CitizenPhone             //[OK] Телефон заявителя -> phoneNumber
     String CitizenEmail             //[OK] E-Mail заявителя -> email
     String CitizenSocialStatusId    //[Х] ID социальный статус гражданина -> справочник CitizenSocStat todo не используют
@@ -97,7 +96,7 @@ class Resol implements Card{        // appeal
                                     // def attachedFile = utils.attachFile(utils.get(obj.docpack.UUID[0]), "Hello4.txt", '', "Hello", str.getBytes())
 }
 
-class Letter implements Card{
+class Letter implements iCard{
     def prepareAddress
     String CitizenName              // Имя заявителя -> LastName
     String CitizenSurname           // Фамилия заявителя -> FirstName
@@ -526,13 +525,16 @@ boolean prepareToDb(InboxCard card) {
     return false
 }
 
-def attachmentFiles(Card card, obj){
+def attachmentFiles(iCard card, obj){
     if (card.Files.size() > 0){
         for (def item : card.Files){
             byte[] file = Base64.decoder.decode(item.Data);
             def attachedFile = utils.attachFile(utils.get(obj.docpack.UUID[0]), item.Name, '', '', file)
             if (attachedFile != null){
-                logger.info("${LOG_PREFIX} Файл с именем ${item.Name} прикреплен к обращению ${obj.title}")
+                logger.info("${LOG_PREFIX} Файл с именем ${item.Name} прикреплен к обращению ${obj.title} ${attachedFile.UUID}")
+                Map<Object, Object> updateData = new HashMap<>()
+                updateData.put('markInSadko', 'да')
+                obj = utils.edit(attachedFile.UUID, updateData)
             }else{
                 logger.error("${LOG_PREFIX} Файл с именем ${item.Name} не прикрепился к обращению ${obj.title}")
             }
@@ -540,7 +542,7 @@ def attachmentFiles(Card card, obj){
     }
 }
 
-def createAppeal(Card card){
+def createAppeal(iCard card){
     boolean isCorrectlyAddress = false
     Map<Object, Object> updateData = new HashMap<>()
     if (card instanceof Resol) {
@@ -596,7 +598,7 @@ def createAppeal(Card card){
     return [obj, isCorrectlyAddress]
 }
 
-def pushToMediumTable(Card card){
+def pushToMediumTable(iCard card){
     Map<Object, Object> updateData = new HashMap<>()
     if (card instanceof Resol){
         updateData.put('Guid', card.Guid)
@@ -684,11 +686,11 @@ if (connection.responseCode == 200) {
             def result = jsonSlurper.parseText(con.inputStream.text)
             logger.info("${LOG_PREFIX} Процедура подтверждения обработки обращений завершилась успешно: ${result}/${guidList.size()}")
         }else{
-            logger.error("${LOG_PREFIX} Ошибка в запросе при подтверждении обработки обращений, код ошибки: ${connection.responseCode}, ошибка: ${connection.errorStream.text}")
+            logger.error("${LOG_PREFIX} Ошибка в запросе при подтверждении обработки обращений, код ошибки: ${connection.responseCode}, ошибка: ${connection?.errorStream?.text}")
         }
     } else {
         logger.error("${LOG_PREFIX} Токен отсутствует, дальнейшая загрузка прерывается")
     }
 } else {
-    logger.error("${LOG_PREFIX} Ошибка в запросе при получении токена, код ошибки: ${connection.responseCode}, ошибка: ${connection.errorStream.text}")
+    logger.error("${LOG_PREFIX} Ошибка в запросе при получении токена, код ошибки: ${connection.responseCode}, ошибка: ${connection?.errorStream?.text}")
 }
