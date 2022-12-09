@@ -4,6 +4,7 @@ import groovy.json.JsonSlurper
 import groovy.transform.Field
 
 import javax.net.ssl.*
+import java.nio.charset.Charset
 import java.security.KeyStore
 import java.util.logging.Logger
 
@@ -392,6 +393,13 @@ class TrustHostnameVerifier implements HostnameVerifier {
     }
 }
 
+class ConnectSADKOc {
+    String access_token
+    int expires_in
+    String token_type
+    String scope
+}
+
 def prepareSSLConnection() {
     def context = SSLContext.getInstance('SSL')
     def tks = KeyStore.getInstance(KeyStore.defaultType);
@@ -403,6 +411,30 @@ def prepareSSLConnection() {
     context.init(null, tmf.trustManagers, null)
     HttpsURLConnection.defaultSSLSocketFactory = context.socketFactory
     HttpsURLConnection.setDefaultHostnameVerifier(new TrustHostnameVerifier())
+}
+
+HttpsURLConnection prepareConnectWithToken(String url, String token) {
+    def response = (HttpsURLConnection) new URL(url).openConnection()
+    response.setRequestProperty("Authorization", token);
+    return response
+}
+
+def prepareRequestPOST(HttpsURLConnection response, String data, boolean isConnect = false) {
+    byte[] postData = data.getBytes(Charset.forName("utf-8"));
+    response.setDoOutput(true);
+    response.setInstanceFollowRedirects(false);
+    response.setRequestMethod("POST");
+    if (isConnect){
+        response.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
+    }else{
+        response.setRequestProperty("Content-Type", "application/json-patch+json")
+    }
+    response.setRequestProperty("charset", "utf-8");
+    response.setRequestProperty("Content-Length", Integer.toString(postData.length))
+    response.setUseCaches(false);
+    def outStream = response.getOutputStream()
+    outStream.write(postData)
+    outStream.close()
 }
 
 def updateDataToDb(ArrayList data, Catalog item) {
@@ -450,14 +482,14 @@ def parseData(String response, Catalog item) {
     }
 }
 
-def loadCatalog(Catalog item) {
+def loadCatalog(Catalog item, token) {
     def catalogName = item.desc + " [ " + item.name() + " ]"
     def url = baseUrl + item.name()
-    def response = (HttpsURLConnection) new URL(url).openConnection()
+    def response = prepareConnectWithToken(url, token)
     if (response.responseCode == 200) {
         parseData(response.inputStream.text, item)
     } else {
-        logger.error(LOG_PREFIX + "Ошибка в запросе по справочнику: " + catalogName + ", код ошибки: " + response.responseCode + ", ошибка: " + response.errorStream.text)
+        logger.error(LOG_PREFIX + "Ошибка в запросе по справочнику: " + catalogName + ", код ошибки: " + response.responseCode + ", ошибка: " + response?.errorStream?.text)
     }
     logger.info(LOG_PREFIX + catalogName + " загружен")
 }
@@ -472,9 +504,23 @@ def loadCatalog(Catalog item) {
 
 
 prepareSSLConnection()
-def values = Catalog.values()
-for (def item in values) {
-    loadCatalog(item)
+def connection = (HttpsURLConnection) new URL(connectUrl).openConnection()
+prepareRequestPOST(connection, urlConnectParam, true)
+
+if (connection.responseCode == 200) {
+    ConnectSADKOc connect = jsonSlurper.parseText(connection.inputStream.text) as ConnectSADKOc
+    if (connect.access_token != null) {
+        def authorization = connect.token_type + " " + connect.access_token
+        def values = Catalog.values()
+        for (def item in values) {
+            loadCatalog(item, authorization)
+        }
+        println('Load is completed')
+    }else {
+        logger.error("${LOG_PREFIX} Токен отсутствует, дальнейшая загрузка прерывается")
+    }
+}else {
+    logger.error("${LOG_PREFIX} Ошибка в запросе при получении токена, код ошибки: ${connection.responseCode}, ошибка: ${connection?.errorStream?.text}")
 }
-//createCatalogCSV(dataCSV)
-println('Load is completed')
+
+
