@@ -14,7 +14,7 @@ import java.util.regex.Matcher
 
 @Field final Logger logger = Logger.getLogger("") //todo off in web
 
-
+def version = 0.1
 
 
 interface Card{}
@@ -367,20 +367,6 @@ def prepareSSLConnection() {
     HttpsURLConnection.setDefaultHostnameVerifier(new TrustHostnameVerifierInbox())
 }
 
-def prepareRequestPOSTtoConnect(HttpsURLConnection response) {
-    byte[] postData = urlConnectParam.getBytes(Charset.forName("utf-8"));
-    response.setDoOutput(true);
-    response.setInstanceFollowRedirects(false);
-    response.setRequestMethod("POST");
-    response.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
-    response.setRequestProperty("charset", "utf-8");
-    response.setRequestProperty("Content-Length", Integer.toString(postData.length))
-    response.setUseCaches(false);
-    def outStream = response.getOutputStream()
-    outStream.write(postData)
-    outStream.close()
-}
-
 def prepareRequestPOST(HttpsURLConnection response, String data, boolean isConnect = false) {
     byte[] postData = data.getBytes(Charset.forName("utf-8"));
     response.setDoOutput(true);
@@ -665,57 +651,8 @@ def pushToMediumTable(Card card){
     return obj
 }
 
-
-//def encoded = "Hello World".bytes.encodeBase64().toString()
-//assert encoded == "SGVsbG8gV29ybGQ="
-//def decoded = new String("SGVsbG8gV29ybGQ=".decodeBase64())
-//assert decoded == "Hello World"
-
-//byte[] tmp = Base64.decoder.decode(base);
-
-//String content = "SlZCRVJp...";
-//byte[] tmp = Base64.decoder.decode(content);
-//byte[] pdf = Base64.decoder.decode(new String(tmp));
-//def address = "Россия, Октябрьский , Псков, Город Кондово Проспект Октябрьский Д 36 к. 1 литера А 203 квар почтовый индекс 180000"
-//def address = "3. Россия, г Калуга, ул Салтыкова-Щедрина, д 72, кв 15"
-
-//def address = "Россия, г Калуга, ул Салтыкова-Щедрина, д 72, кв 15"
-////def address = "Россия, Октябрьский , Псков, Город Кондово Проспект Октябрьский Д 36 к. 1 литера А 203 квар почтовый индекс 180000"
-////def address = "Иванково дер,  Качурина"
-//def parse = jsonSlurper.parseText(checkAddressByDadata(address, 0))
-//if (parse instanceof Map){
-//    parse = jsonSlurper.parseText(checkAddressByDadata(address, 1))
-//}
-//
-//def houseData, house_fias_id, homeData, cityData
-//if (parse instanceof ArrayList) {
-//    if (parse[0].house != null){
-//        String house = parse[0].house
-//        if(house.isInteger()) {
-//            houseData = house as Integer
-//        }
-//    }
-//    house_fias_id = parse[0].house_fias_id
-//    cityData = parse[0].city
-//    if (parse[0].flat != null){
-//        String flat = parse[0].flat
-//        if(flat.isInteger()) {
-//            homeData = flat as Integer
-//        }
-//    }
-//}
-//
-//
-////def address = "Иванково дер,  Качурина"
-//def house = PrepareAddress.matchAddress("(д|Д|дом|Дом|ДОМ)", address)
-//def home = PrepareAddress.matchAddress("(кв|КВ|квартира|Квартира|квар|Квар)", address, false, true)
-//def city = PrepareAddress.matchAddress("(Город|город|г|гор|Гор|деревня|Деревня|дер|Дер|д|Д|c|C|село|Село)", address, true)
-//def street = PrepareAddress.matchAddress("(ул|Ул|улица|Улица|у|У|УЛИЦА|пр|Пр|Проспект|проспект|Просп|просп|пер|Пер|переулок|Переулок)", address, true)
-//def isMatchAddress = PrepareAddress.checkMatchAddress(street as String, address, "р-н.Октябрьский, г.Кондрово,") // value = street.title
-
 prepareSSLConnection()
 def connection = (HttpsURLConnection) new URL(connectUrl).openConnection()
-//prepareRequestPOSTtoConnect(connection)
 prepareRequestPOST(connection, urlConnectParam, true)
 
 if (connection.responseCode == 200) {
@@ -738,19 +675,17 @@ if (connection.responseCode == 200) {
                     guidList.add("\"" + inbox.Guid + "\"")
                     logger.info("${LOG_PREFIX} Обращение, c атрибутами: тип - ${inbox.Type}, guid - ${inbox.Guid}, загружено")
                 }
-
             }
             count++
         }
-       // def res = (HttpsURLConnection) new URL(ulr).openConnection()
-        def res = prepareConnectWithToken(baseUrl + 'InboxProcessingConfirmation', authorization)
-        prepareRequestPOST(res, guidList.toString())
-        if (res.responseCode == 200){
-            logger.info("${LOG_PREFIX} Процедура подтверждения обработки обращений прошло успешно")
+        def con = prepareConnectWithToken(baseUrl + 'InboxProcessingConfirmation', authorization)
+        prepareRequestPOST(con, guidList.toString())
+        if (con.responseCode == 200){
+            def result = jsonSlurper.parseText(con.inputStream.text)
+            logger.info("${LOG_PREFIX} Процедура подтверждения обработки обращений завершилась успешно: ${result}/${guidList.size()}")
         }else{
             logger.error("${LOG_PREFIX} Ошибка в запросе при подтверждении обработки обращений, код ошибки: ${connection.responseCode}, ошибка: ${connection.errorStream.text}")
         }
-
     } else {
         logger.error("${LOG_PREFIX} Токен отсутствует, дальнейшая загрузка прерывается")
     }
