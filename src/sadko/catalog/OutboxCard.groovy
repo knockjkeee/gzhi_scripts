@@ -452,109 +452,132 @@ def prepareRequestPOST(HttpsURLConnection response, String data, boolean isConne
     outStream.close()
 }
 
-prepareSSLConnection()
-def connection = (HttpsURLConnection) new URL(connectUrl).openConnection()
-prepareRequestPOST(connection, urlConnectParam, true)
-
-
-if (connection.responseCode == 200) {
-    ConnectSADKOo connect = jsonSlurper.parseText(connection.inputStream.text) as ConnectSADKOo
-    if (connect.access_token != null) {
-        def authorization = connect.token_type + " " + connect.access_token
-
-        Card card = new Card();
-//        card.Guid = '8DAB527A-A951-4996-995F-C7CD3AFF84C8'
-        card.CitizenName = 'Г.'
-        card.CitizenSurname = 'Чернова'
-        card.CitizenPatronymic = 'А.'
-        card.CitizenAddress = 'обл.Калужская, р-н.Дзержинский, г.Кондрово, ул.Пушкина, д.728, кв.170'
-        card.CitizenAddressPost = '249833'
-        card.CitizenAddressAreaId = 12
-        card.CitizenPhone = '+7 (900) 123-456-89'
-        card.CitizenEmail = 'bronsquall@gemx.com'
-        card.CitizenSocialStatusId = 0
-        card.CitizenBenefitId = 0
-        card.CitizenAnswerSendTypeId = 1
-        card.LetterTypeId = 2
-        card.DocumentTypeId = 1
-        card.CorrespondentId = 4
-        card.LetterNumber = 'Ч-гжи-40/4772/3-18'
-        card.ReceiveDate = '2018-11-28T00:00:00'
-        card.DeliveryTypeId = 2
-        card.ConsiderationFormId = 0
-        card.RegistrationNumber = 'Ч-гжи-40/4772/3-18'
-        card.RegistrationDate = '2018-11-28T00:00:00'
-        card.PreviousCardsCount = 3
-        card.ConcernedCitizensNumber = 1
-        card.Message = 'Низкая температура ГВС'
-
-        FileDataOut file = new FileDataOut()
-        file.Guid = 'D6CD574B-D06F-4486-B671-CEC2183860EC'
-        file.Name = 'Обращение.pdf'
-        file.Data = 'EAA33(base64)...=='
-        card.files.add(file)
-
-        ResolutionOut resolution = new ResolutionOut()
-        resolution.Guid = '7C126804-4C9C-4063-8A5A-865C899F8A63'
-        resolution.CreatedTime = '2022-11-29T12:45:40'
-
-        UserOut user = new UserOut()
-        user.Guid = 'AB172B74-45DC-486F-B44B-0CFEFE4EA251'
-        user.LastName = 'Дулишкович'
-        user.FirstName = 'А'
-        user.MiddleName = 'D'
-        user.FIO = 'Дулишкович А.В.'
-
-        resolution.Author = user
-        resolution.executor = user
-
-        resolution.DecisionId = 3
-        resolution.ResolutionText = 'Направляется ответ на ваш запрос'
-        resolution.ControlDate = '2022-11-28T00:00:00'
-
-        ThemeOut theme = new ThemeOut()
-        theme.Code = '0005.0005.0056.1147'
-        theme.Name = 'Коммунально-бытовое хозяйство и предоставление услуг в условиях рынка'
-        resolution.themes.add(theme)
-
-        FileDataOut file2 = new FileDataOut()
-        file2.Guid = '61E1F898-3E84-4611-BD80-4089AEFBBBA0'
-        file2.Name = 'Акт.pdf'
-        file2.Data = 'EAA33(base64)...=='
-        resolution.files.add(file2)
-
-        LetterDetail letterDetail = new LetterDetail()
-
-        letterDetail.Closed = '2022-11-29T00:00:00'
-        letterDetail.Sended = '2022-11-29T10:30:00'
-        letterDetail.SendTypeId = 1
-        letterDetail.EmployeeSended = 'Семёнова Мария Петровна'
-        letterDetail.TextAnswer = 'Рассмотрев ваше заявление...'
-        letterDetail.Status = 'Дан ответ автору'
-        letterDetail.StatusId = 8
-
-        СonsiderationResultGzi considerationResults = new СonsiderationResultGzi()
-
-        considerationResults.Code = '0005.0005.0056.1147'
-        considerationResults.ResultId = 1
-        considerationResults.InspectionTypeId = 1
-        considerationResults.AddControlMeasureId = 1
-        considerationResults.ResponseDate = '2022-11-29T00:00:00'
-        considerationResults.headSign = false
-
-
-        OutBoxCard outBoxCard = new OutBoxCard(card, resolution, letterDetail, considerationResults)
-        ObjectWriter mapper = new ObjectMapper().writer();;
-        String json = mapper.writeValueAsString(outBoxCard);
-
-        String print = mapper.withDefaultPrettyPrinter().writeValueAsString(outBoxCard);
-
-        def con = prepareConnectWithToken(baseUrl + 'OutboxResol', authorization)
-        prepareRequestPOST(con, json)
-        println('UpLoad is completed')
-    }else {
-        logger.error("${LOG_PREFIX} Токен отсутствует, дальнейшая загрузка прерывается")
-    }
-}else {
-    logger.error("${LOG_PREFIX} Ошибка в запросе при получении токена, код ошибки: ${connection.responseCode}, ошибка: ${connection?.errorStream?.text}")
+private void prepareСonsiderationResult(СonsiderationResultGzi considerationResults) {
+    considerationResults.Code = '0005.0005.0056.1147'
+    considerationResults.ResultId = 1
+    considerationResults.InspectionTypeId = 1
+    considerationResults.AddControlMeasureId = 1
+    considerationResults.ResponseDate = '2022-11-29T00:00:00'
+    considerationResults.headSign = false
 }
+
+private void prepareLetterDetail(LetterDetail letterDetail) {
+    letterDetail.Closed = '2022-11-29T00:00:00'
+    letterDetail.Sended = '2022-11-29T10:30:00'
+    letterDetail.SendTypeId = 1
+    letterDetail.EmployeeSended = 'Семёнова Мария Петровна'
+    letterDetail.TextAnswer = 'Рассмотрев ваше заявление...'
+    letterDetail.Status = 'Дан ответ автору'
+    letterDetail.StatusId = 8
+}
+
+private void prepareResolution(ResolutionOut resolution) {
+    resolution.Guid = '7C126804-4C9C-4063-8A5A-865C899F8A63'
+    resolution.CreatedTime = '2022-11-29T12:45:40'
+
+    UserOut user = new UserOut()
+    user.Guid = 'AB172B74-45DC-486F-B44B-0CFEFE4EA251'
+    user.LastName = 'Дулишкович'
+    user.FirstName = 'А'
+    user.MiddleName = 'D'
+    user.FIO = 'Дулишкович А.В.'
+
+    resolution.Author = user
+    resolution.executor = user
+
+    resolution.DecisionId = 3
+    resolution.ResolutionText = 'Направляется ответ на ваш запрос'
+    resolution.ControlDate = '2022-11-28T00:00:00'
+
+    ThemeOut theme = new ThemeOut()
+    theme.Code = '0005.0005.0056.1147'
+    theme.Name = 'Коммунально-бытовое хозяйство и предоставление услуг в условиях рынка'
+    resolution.themes.add(theme)
+
+    FileDataOut file2 = new FileDataOut()
+    file2.Guid = '61E1F898-3E84-4611-BD80-4089AEFBBBA0'
+    file2.Name = 'Акт.pdf'
+    file2.Data = 'EAA33(base64)...=='
+    resolution.files.add(file2)
+}
+
+private void prepareCard(Card card) {
+    card.Guid = '8DAB527A-A951-4996-995F-C7CD3AFF84C8'
+    card.CitizenName = 'Г.'
+    card.CitizenSurname = 'Чернова'
+    card.CitizenPatronymic = 'А.'
+    card.CitizenAddress = 'обл.Калужская, р-н.Дзержинский, г.Кондрово, ул.Пушкина, д.728, кв.170'
+    card.CitizenAddressPost = '249833'
+    card.CitizenAddressAreaId = 12
+    card.CitizenPhone = '+7 (900) 123-456-89'
+    card.CitizenEmail = 'bronsquall@gemx.com'
+    card.CitizenSocialStatusId = 0
+    card.CitizenBenefitId = 0
+    card.CitizenAnswerSendTypeId = 1
+    card.LetterTypeId = 2
+    card.DocumentTypeId = 1
+    card.CorrespondentId = 4
+    card.LetterNumber = 'Ч-гжи-40/4772/3-18'
+    card.ReceiveDate = '2018-11-28T00:00:00'
+    card.DeliveryTypeId = 2
+    card.ConsiderationFormId = 0
+    card.RegistrationNumber = 'Ч-гжи-40/4772/3-18'
+    card.RegistrationDate = '2018-11-28T00:00:00'
+    card.PreviousCardsCount = 3
+    card.ConcernedCitizensNumber = 1
+    card.Message = 'Низкая температура ГВС'
+
+    FileDataOut file = new FileDataOut()
+    file.Guid = 'D6CD574B-D06F-4486-B671-CEC2183860EC'
+    file.Name = 'Обращение.pdf'
+    file.Data = 'EAA33(base64)...=='
+    card.files.add(file)
+}
+
+def initScript(){
+    prepareSSLConnection()
+    def connection = (HttpsURLConnection) new URL(connectUrl).openConnection()
+    prepareRequestPOST(connection, urlConnectParam, true)
+
+    if (connection.responseCode == 200) {
+        ConnectSADKOo connect = jsonSlurper.parseText(connection.inputStream.text) as ConnectSADKOo
+        if (connect.access_token != null) {
+            def authorization = connect.token_type + " " + connect.access_token
+
+            Card card = new Card();
+            prepareCard(card)
+
+            ResolutionOut resolution = new ResolutionOut()
+            prepareResolution(resolution)
+
+            LetterDetail letterDetail = new LetterDetail()
+            prepareLetterDetail(letterDetail)
+
+            СonsiderationResultGzi considerationResults = new СonsiderationResultGzi()
+            prepareСonsiderationResult(considerationResults)
+
+            OutBoxCard outBoxCard = new OutBoxCard(card, resolution, letterDetail, considerationResults)
+            ObjectWriter mapper = new ObjectMapper().writer();;
+            String json = mapper.writeValueAsString(outBoxCard);
+            String printJson = mapper.withDefaultPrettyPrinter().writeValueAsString(outBoxCard);
+
+            def con = prepareConnectWithToken(baseUrl + 'OutboxResol', authorization)
+
+            prepareRequestPOST(con, json)
+            if (con.responseCode == 200){
+                def text = con.inputStream.text
+                logger.info("${LOG_PREFIX} Ответ в сторону Садко направлен, ответ от сервера: ${text}, сформированный запрос:\n${printJson}")
+            }else{
+                logger.error("${LOG_PREFIX} Ошибка в процедуре направления ответа  в сторону Садко, код ошибки: ${connection.responseCode}, ошибка: ${connection?.errorStream?.text}")
+            }
+        }else {
+            logger.error("${LOG_PREFIX} Токен отсутствует, дальнейшая загрузка прерывается")
+        }
+    }else {
+        logger.error("${LOG_PREFIX} Ошибка в запросе при получении токена, код ошибки: ${connection.responseCode}, ошибка: ${connection?.errorStream?.text}")
+    }
+}
+
+
+initScript()
+
