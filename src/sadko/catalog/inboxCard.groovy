@@ -16,6 +16,8 @@ import java.util.regex.Matcher
 
 def version = 0.1
 
+
+
 interface iCard {}
 
 enum MappingTypeUrl {
@@ -78,16 +80,16 @@ class Resol implements iCard{        // appeal
     String CorrespondentId          //[OK] ID корреспондента -> справочник Correspondents [reporter]
     String LetterNumber             //[OK] Номер сопроводительного письма -> MessageNumber
     String ControlOrgSendDate       //[OK] Дата отправки из организации -> MessageDate
-    String ReceiveDate              // Дата поступления todo New field -> ReceiveDateSadko ??? registerDate
+    String ReceiveDate              // Дата поступления todo New field -> ReceiveDateSD
     String DeliveryTypeId           //[OK] Тип доставки -> справочник DeliveryTypes [deliveryType]
     String ConsiderationFormId      //[Х] Форма рассмотрения -> справочник ConsiderationF todo не используют
     String ReceivedFrom             //[OK] Поступило из -> todo fromAp справочник Место поступления или receivedfrom (строка) !!!!!!!!!!!!
-    String RegistrationNumber       // Регистрационный номер -> todo New field -> RegistrationNumberSadko
+    String RegistrationNumber       // Регистрационный номер -> todo New field -> RegNumSD
     String RegistrationDate         //[OK] Дата регистрации -> registerDate
-    String PreviousCardsCount       // Количество предыдущих обращений todo New field -> PreviousCardsCountSadko
-    String DocSheetNumber           // Количество листов документа  todo New field -> DocSheetNumberSadko
-    String DocCopyNumber            // Количество листов приложения todo New field -> DocCopyNumberSadko
-    String ConcernedCitizensNumber  // Количество заинтересованных todo New field -> ConcernedCitizensNumberSadko
+    String PreviousCardsCount       // Количество предыдущих обращений todo New field -> PreviousCardsCountSadko todo не используют
+    String DocSheetNumber           // Количество листов документа  todo New field -> DocSheetNumberSadko todo не используют
+    String DocCopyNumber            // Количество листов приложения todo New field -> DocCopyNumberSadko todo не используют
+    String ConcernedCitizensNumber  // Количество заинтересованных todo New field -> ConcernedCitizensNumberSadko todo не используют
     String Message                  //[OK] Текст обращения -> descrip
     ArrayList Files                 // Файлы -> Павет документов [docpack]
                                     // Прикрепление файла к объекту*/
@@ -547,6 +549,7 @@ def createAppeal(iCard card){
     Map<Object, Object> updateData = new HashMap<>()
     if (card instanceof Resol) {
         updateData.put('GuidSadko', card.Guid)
+        updateData.put('RegNumSD', card.RegistrationNumber)
         updateData.put('typeAp', getCatalogItem('LetterTypes', 'appealType', card.LetterTypeId))
         updateData.put('viewAp', getCatalogItem('DocumentTypes', 'viewAp', card.DocumentTypeId))
         updateData.put('reporter', getCatalogItem('Correspondents', 'reporter', card.CorrespondentId))
@@ -583,6 +586,8 @@ def createAppeal(iCard card){
     updateData.put('descrip', checkFieldOnNull(card.Message))
     updateData.put('fromAp', utils.find('entryPlace', [code: 'en14']))  //TODO Базовое значение -> ГИС САДКО.ОГ
     updateData.put('themes', utils.find('themeInv', [code: 'no']))      //TODO значения нет в САДКО
+
+    updateData.put('ReceiveDateSD', card.ReceiveDate)
 
     def closure = {
         utils.create('appeal$appeal', updateData);
