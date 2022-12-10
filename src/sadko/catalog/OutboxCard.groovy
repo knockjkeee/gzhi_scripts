@@ -4,22 +4,17 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonPropertyOrder
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.ObjectWriter
-import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 import groovy.transform.Field
-import jdk.nashorn.internal.ir.ObjectNode
 
-import javax.net.ssl.HostnameVerifier
-import javax.net.ssl.HttpsURLConnection
-import javax.net.ssl.SSLContext
-import javax.net.ssl.SSLSession
-import javax.net.ssl.TrustManagerFactory
+import javax.net.ssl.*
 import java.nio.charset.Charset
 import java.security.KeyStore
 import java.util.logging.Logger
 
 @Field final Logger logger = Logger.getLogger("") //todo off in web
 
+def ver = 0.1
 
 
 class TrustHostnameVerifiero implements HostnameVerifier {
@@ -55,8 +50,9 @@ class OutBoxCard {
     LetterDetail getLetterDetail() {
         return LetterDetail
     }
+
     @JsonProperty("СonsiderationResultGzi")
-    СonsiderationResultGzi getConsiderationResults() {
+    СonsiderationResultGzi getСonsiderationResultGzi() {
         return СonsiderationResultGzi
     }
 
@@ -77,27 +73,27 @@ class Card {                        // appeal
     String CitizenPatronymic        //[OK] Отчество заявителя -> MiddleName
     String CitizenAddress           //[OK] Почтовый адрес заявителя -> oldaddr todo check собрать из дома [house2]+[street2]+room
     String CitizenAddressPost       //[OK] Индекс почтового адреса заявителя -> indexAddr
-    int CitizenAddressAreaId     //[OK] ID района по почтовому адресу заявителя -> справочник CitizenAddArea [regionAp]
+    String CitizenAddressAreaId     //[OK] ID района по почтовому адресу заявителя -> справочник CitizenAddArea [regionAp]
     String CitizenPhone             //[OK] Телефон заявителя -> phoneNumber
     String CitizenEmail             //[OK] E-Mail заявителя -> email
-    int CitizenSocialStatusId    //[Х] ID социальный статус гражданина -> справочник CitizenSocStat todo не используют
-    int CitizenBenefitId         //[Х] ID льготный состав гражданина -> справочник CitizenBenefit todo не используют
-    int CitizenAnswerSendTypeId  //[OK] Желаемый способ ответа гражданину -> спарвочник CitizenAnSeTy [ansType]
-    int LetterTypeId             //[OK] ID типа обращения -> справочник LetterTypes [typeAp]
-    int DocumentTypeId           //[OK] ID вида обращения -> справочник DocumentTypes [viewAp]
-    int CorrespondentId          //[OK] ID корреспондента -> справочник Correspondents [reporter]
+    String CitizenSocialStatusId    //[Х] ID социальный статус гражданина -> справочник CitizenSocStat todo не используют
+    String CitizenBenefitId         //[Х] ID льготный состав гражданина -> справочник CitizenBenefit todo не используют
+    String CitizenAnswerSendTypeId  //[OK] Желаемый способ ответа гражданину -> спарвочник CitizenAnSeTy [ansType]
+    String LetterTypeId             //[OK] ID типа обращения -> справочник LetterTypes [typeAp]
+    String DocumentTypeId           //[OK] ID вида обращения -> справочник DocumentTypes [viewAp]
+    String CorrespondentId          //[OK] ID корреспондента -> справочник Correspondents [reporter]
     String LetterNumber             //[OK] Номер сопроводительного письма -> MessageNumber
     String ControlOrgSendDate       //[OK] Дата отправки из организации -> MessageDate
     String ReceiveDate              // Дата поступления todo New field -> ReceiveDateSadko ??? registerDate
-    int DeliveryTypeId           //[OK] Тип доставки -> справочник DeliveryTypes [deliveryType]
-    int ConsiderationFormId      //[Х] Форма рассмотрения -> справочник ConsiderationF todo не используют
+    String DeliveryTypeId           //[OK] Тип доставки -> справочник DeliveryTypes [deliveryType]
+    String ConsiderationFormId      //[Х] Форма рассмотрения -> справочник ConsiderationF todo не используют
     String ReceivedFrom             //[OK] Поступило из -> todo fromAp справочник Место поступления или receivedfrom (строка) !!!!!!!!!!!!
     String RegistrationNumber       // Регистрационный номер -> todo New field -> RegistrationNumberSadko
     String RegistrationDate         //[OK] Дата регистрации -> registerDate
-    int PreviousCardsCount       // Количество предыдущих обращений todo New field -> PreviousCardsCountSadko
-    int DocSheetNumber           // Количество листов документа  todo New field -> DocSheetNumberSadko
-    int DocCopyNumber            // Количество листов приложения todo New field -> DocCopyNumberSadko
-    int ConcernedCitizensNumber  // Количество заинтересованных todo New field -> ConcernedCitizensNumberSadko
+    String PreviousCardsCount       // Количество предыдущих обращений todo New field -> PreviousCardsCountSadko
+    String DocSheetNumber           // Количество листов документа  todo New field -> DocSheetNumberSadko
+    String DocCopyNumber            // Количество листов приложения todo New field -> DocCopyNumberSadko
+    String ConcernedCitizensNumber  // Количество заинтересованных todo New field -> ConcernedCitizensNumberSadko
     String Message                  //[OK] Текст обращения -> descrip
     ArrayList<FileDataOut> Files = new ArrayList<>()             // Файлы -> Павет документов [docpack]
 
@@ -126,7 +122,7 @@ class Card {                        // appeal
         return CitizenAddressPost
     }
     @JsonProperty("CitizenAddressAreaId")
-    int getCitizenAddressAreaId() {
+    String getCitizenAddressAreaId() {
         return CitizenAddressAreaId
     }
     @JsonProperty("CitizenPhone")
@@ -138,27 +134,27 @@ class Card {                        // appeal
         return CitizenEmail
     }
     @JsonProperty("CitizenSocialStatusId")
-    int getCitizenSocialStatusId() {
+    String getCitizenSocialStatusId() {
         return CitizenSocialStatusId
     }
     @JsonProperty("CitizenBenefitId")
-    int getCitizenBenefitId() {
+    String getCitizenBenefitId() {
         return CitizenBenefitId
     }
     @JsonProperty("CitizenAnswerSendTypeId")
-    int getCitizenAnswerSendTypeId() {
+    String getCitizenAnswerSendTypeId() {
         return CitizenAnswerSendTypeId
     }
     @JsonProperty("LetterTypeId")
-    int getLetterTypeId() {
+    String getLetterTypeId() {
         return LetterTypeId
     }
     @JsonProperty("DocumentTypeId")
-    int getDocumentTypeId() {
+    String getDocumentTypeId() {
         return DocumentTypeId
     }
     @JsonProperty("CorrespondentId")
-    int getCorrespondentId() {
+    String getCorrespondentId() {
         return CorrespondentId
     }
     @JsonProperty("LetterNumber")
@@ -174,11 +170,11 @@ class Card {                        // appeal
         return ReceiveDate
     }
     @JsonProperty("DeliveryTypeId")
-    int getDeliveryTypeId() {
+    String getDeliveryTypeId() {
         return DeliveryTypeId
     }
     @JsonProperty("ConsiderationFormId")
-    int getConsiderationFormId() {
+    String getConsiderationFormId() {
         return ConsiderationFormId
     }
     @JsonProperty("ReceivedFrom")
@@ -194,19 +190,19 @@ class Card {                        // appeal
         return RegistrationDate
     }
     @JsonProperty("PreviousCardsCount")
-    int getPreviousCardsCount() {
+    String getPreviousCardsCount() {
         return PreviousCardsCount
     }
     @JsonProperty("DocSheetNumber")
-    int getDocSheetNumber() {
+    String getDocSheetNumber() {
         return DocSheetNumber
     }
     @JsonProperty("DocCopyNumber")
-    int getDocCopyNumber() {
+    String getDocCopyNumber() {
         return DocCopyNumber
     }
     @JsonProperty("ConcernedCitizensNumber")
-    int getConcernedCitizensNumber() {
+    String getConcernedCitizensNumber() {
         return ConcernedCitizensNumber
     }
     @JsonProperty("Message")
@@ -222,10 +218,10 @@ class Card {                        // appeal
 @JsonPropertyOrder(['Guid', 'CreatedTime', 'Author', 'Executor', 'DecisionId', 'ResolutionText', 'ControlDate', 'Themes', 'Files'])
 class ResolutionOut {               // appeal -> resolution
     String Guid                     // Уникальный идентификатор резолюции todo New field -> GuidSadko
-    String CreatedTime              // Дата поручения todo New field -> CreatedTimeSadko
-    UserOut Author                  // Автор -> who
-    UserOut Executor                // Исполнитель -> that
-    int DecisionId               // ID Решения по резолюции -> справочник Decisions todo не используют
+    String CreatedTime              // Дата поручения todo New field -> CreatedTimeSadko  //todo важное поле
+    UserOut Author                  // Автор -> who     //todo важное поле
+    UserOut Executor                // Исполнитель -> that      //todo важное поле
+    String DecisionId               // ID Решения по резолюции -> справочник Decisions todo не используют
     String ResolutionText           // Текст резолюции -> answer
     String ControlDate              // Дата контроля todo New field -> ControlDateSadko
     ArrayList<ThemeOut> Themes = new ArrayList<>()            // Список тем вопросов todo ??????
@@ -247,7 +243,7 @@ class ResolutionOut {               // appeal -> resolution
         return Executor
     }
     @JsonProperty("DecisionId")
-    int getDecisionId() {
+    String getDecisionId() {
         return DecisionId
     }
     @JsonProperty("ResolutionText")
@@ -308,13 +304,13 @@ class ThemeOut {
 
 @JsonPropertyOrder(['Closed', 'Sended', 'SendTypeId', 'EmployeeSended', 'TextAnswer', 'Status', 'StatusId'])
 class LetterDetail{
-    String Closed
-    String Sended
-    int SendTypeId
+    String Closed           //todo важное поле
+    String Sended           //todo важное поле
+    String SendTypeId
     String EmployeeSended
     String TextAnswer
     String Status
-    int StatusId
+    String StatusId
     @JsonProperty("Closed")
     String getClosed() {
         return Closed
@@ -324,7 +320,7 @@ class LetterDetail{
         return Sended
     }
     @JsonProperty("SendTypeId")
-    int getSendTypeId() {
+    String getSendTypeId() {
         return SendTypeId
     }
     @JsonProperty("EmployeeSended")
@@ -340,7 +336,7 @@ class LetterDetail{
         return Status
     }
     @JsonProperty("StatusId")
-    int getStatusId() {
+    String getStatusId() {
         return StatusId
     }
 }
@@ -452,87 +448,121 @@ def prepareRequestPOST(HttpsURLConnection response, String data, boolean isConne
     outStream.close()
 }
 
+def getCatalogItem(String catalogName, String name){
+    if (name == null) return 0
+    def itemName = utils.find('SadkoCatalog$' + catalogName, [itemName:name])[0]
+    if (itemName != null) return itemName.itemId
+    def itemMap = utils.find('SadkoCatalog$' + catalogName, [itemMap:name])[0]
+    return itemMap != null ? itemMap.itemId : 0
+}
+
+String getStringFromDate(Date date){
+    if (date == null) return null
+    return date.format("yyyy-MM-dd'T'HH:mm:ss")
+}
+
+def addFiles (ArrayList<FileDataOut> files, obj){
+    if (obj != null){
+        byte[] data = utils.readFileContent(obj)
+        def encode = Base64.encoder.encode(data)
+        def content = new String(encode)
+        FileDataOut file = new FileDataOut()
+        file.Guid = UUID.randomUUID().toString()
+        file.Name = obj.title
+        file.Data = content
+        files.add(file)
+    }
+}
+
 private void prepareСonsiderationResult(СonsiderationResultGzi considerationResults) {
-    considerationResults.Code = '0005.0005.0056.1147'
-    considerationResults.ResultId = 1
-    considerationResults.InspectionTypeId = 1
-    considerationResults.AddControlMeasureId = 1
-    considerationResults.ResponseDate = '2022-11-29T00:00:00'
-    considerationResults.headSign = false
+    //considerationResults.Code = '0005.0005.0056.1147'
+    considerationResults.ResultId = 0
+    considerationResults.InspectionTypeId = 0
+    considerationResults.AddControlMeasureId = 0
+    considerationResults.ResponseDate = getStringFromDate(subject.dateanswer)
+    considerationResults.headSign = true
 }
 
 private void prepareLetterDetail(LetterDetail letterDetail) {
-    letterDetail.Closed = '2022-11-29T00:00:00'
-    letterDetail.Sended = '2022-11-29T10:30:00'
-    letterDetail.SendTypeId = 1
-    letterDetail.EmployeeSended = 'Семёнова Мария Петровна'
-    letterDetail.TextAnswer = 'Рассмотрев ваше заявление...'
-    letterDetail.Status = 'Дан ответ автору'
-    letterDetail.StatusId = 8
+    letterDetail.Closed = getStringFromDate(subject.dateanswer)     //todo важное поле
+    letterDetail.Sended = getStringFromDate(subject.dateanswer)     //todo важное поле
+    letterDetail.SendTypeId = getCatalogItem('CitizenAnSeTy', subject.ansType != null ? subject.ansType.title : null)
+    letterDetail.EmployeeSended = subject.maddening != null ? subject.maddening.title : null
+    letterDetail.TextAnswer = subject.Results
+    letterDetail.Status = 'Направлен ответ за подписью руководителя высшего исполнительного органа государственной власти субъекта РФ и его заместителей'
+    letterDetail.StatusId = 0
 }
 
 private void prepareResolution(ResolutionOut resolution) {
-    resolution.Guid = '7C126804-4C9C-4063-8A5A-865C899F8A63'
-    resolution.CreatedTime = '2022-11-29T12:45:40'
+    resolution.Guid = UUID.randomUUID().toString()                  //todo random поле
+    resolution.CreatedTime = getStringFromDate(new Date())          //todo важное поле
+
+    def empl = utils.find('employee', [UUID:'employee$73903'])[0]
 
     UserOut user = new UserOut()
-    user.Guid = 'AB172B74-45DC-486F-B44B-0CFEFE4EA251'
-    user.LastName = 'Дулишкович'
-    user.FirstName = 'А'
-    user.MiddleName = 'D'
-    user.FIO = 'Дулишкович А.В.'
+    //user.Guid = empl.guid
+    user.Guid = 'AB172B74-45DC-486F-B44B-0CFEFE4EA251'              //todo id взят из примера
+    user.LastName = empl.lastName
+    user.FirstName = empl.firstName
+    user.MiddleName = empl.middleName
+    user.FIO = empl.title
 
-    resolution.Author = user
-    resolution.executor = user
+    resolution.Author = user                                        //todo важное поле
+    resolution.executor = user                                      //todo важное поле
+//    resolution.DecisionId = 3
+//    resolution.ResolutionText = 'Направляется ответ на ваш запрос'
+    resolution.ResolutionText = 'empty'
+    //resolution.ControlDate = '2022-11-28T00:00:00'
 
-    resolution.DecisionId = 3
-    resolution.ResolutionText = 'Направляется ответ на ваш запрос'
-    resolution.ControlDate = '2022-11-28T00:00:00'
+//    ThemeOut theme = new ThemeOut()
+//    theme.Code = '0005.0005.0056.1147'
+//    theme.Name = 'Коммунально-бытовое хозяйство и предоставление услуг в условиях рынка'
+//    resolution.themes.add(theme)
 
-    ThemeOut theme = new ThemeOut()
-    theme.Code = '0005.0005.0056.1147'
-    theme.Name = 'Коммунально-бытовое хозяйство и предоставление услуг в условиях рынка'
-    resolution.themes.add(theme)
+    def docpack = subject.docpack[0]
+    def file1Sadko = docpack.file1Sadko[0]
+    def file2Sadko = docpack.file2Sadko[0]
 
-    FileDataOut file2 = new FileDataOut()
-    file2.Guid = '61E1F898-3E84-4611-BD80-4089AEFBBBA0'
-    file2.Name = 'Акт.pdf'
-    file2.Data = 'EAA33(base64)...=='
-    resolution.files.add(file2)
+    addFiles(resolution.files, file1Sadko)
+    addFiles(resolution.files, file2Sadko)
+
+    if (resolution.files.size() > 0){
+        resolution.ResolutionText = 'Направляется ответ на ваш запрос'
+    }
+
 }
 
-private void prepareCard(Card card) {
-    card.Guid = '8DAB527A-A951-4996-995F-C7CD3AFF84C8'
-    card.CitizenName = 'Г.'
-    card.CitizenSurname = 'Чернова'
-    card.CitizenPatronymic = 'А.'
-    card.CitizenAddress = 'обл.Калужская, р-н.Дзержинский, г.Кондрово, ул.Пушкина, д.728, кв.170'
-    card.CitizenAddressPost = '249833'
-    card.CitizenAddressAreaId = 12
-    card.CitizenPhone = '+7 (900) 123-456-89'
-    card.CitizenEmail = 'bronsquall@gemx.com'
+private void prepareCard(Card card) { //todo важных полей нет
+//   card.Guid = subject.GuidSadko
+    card.CitizenName = subject.LastName
+    card.CitizenSurname = subject.FirstName
+    card.CitizenPatronymic = subject.MiddleName
+    card.CitizenAddress = subject.address
+    card.CitizenAddressPost = subject.indexAddr
+    card.CitizenAddressAreaId = getCatalogItem('CitizenAddArea', subject.regionAp != null ? subject.regionAp.title : null)
+    card.CitizenPhone = subject.phoneNumber
+    card.CitizenEmail = subject.email
     card.CitizenSocialStatusId = 0
     card.CitizenBenefitId = 0
-    card.CitizenAnswerSendTypeId = 1
-    card.LetterTypeId = 2
-    card.DocumentTypeId = 1
-    card.CorrespondentId = 4
-    card.LetterNumber = 'Ч-гжи-40/4772/3-18'
-    card.ReceiveDate = '2018-11-28T00:00:00'
-    card.DeliveryTypeId = 2
+    card.CitizenAnswerSendTypeId = getCatalogItem('CitizenAnSeTy', subject.ansType != null ? subject.ansType.title : null)
+    card.LetterTypeId = getCatalogItem('LetterTypes', subject.typeAp != null ? subject.typeAp.title : null)
+    card.DocumentTypeId = getCatalogItem('DocumentTypes', subject.viewAp != null ? subject.viewAp.title : null)
+    card.CorrespondentId = getCatalogItem('Correspondents', subject.reporter != null ? subject.reporter.title : null)
+    card.LetterNumber = subject.MessageNumber
+    card.ReceiveDate = subject.ReceiveDateSD
+    card.DeliveryTypeId = getCatalogItem('DeliveryTypes', subject.deliveryType != null ? subject.deliveryType.title : null)
     card.ConsiderationFormId = 0
-    card.RegistrationNumber = 'Ч-гжи-40/4772/3-18'
-    card.RegistrationDate = '2018-11-28T00:00:00'
-    card.PreviousCardsCount = 3
-    card.ConcernedCitizensNumber = 1
-    card.Message = 'Низкая температура ГВС'
+    card.ReceivedFrom = subject.fromAp
+    card.RegistrationNumber = subject.RegNumSD
+    card.RegistrationDate = getStringFromDate(subject.registerDate)
+    card.Message = subject.descrip
+    def response = subject.response[0]
+    def intresponse = subject.intresponse[0]
 
-    FileDataOut file = new FileDataOut()
-    file.Guid = 'D6CD574B-D06F-4486-B671-CEC2183860EC'
-    file.Name = 'Обращение.pdf'
-    file.Data = 'EAA33(base64)...=='
-    card.files.add(file)
+    addFiles(card.files, response)
+    addFiles(card.files, intresponse)
 }
+
 
 def initScript(){
     prepareSSLConnection()
@@ -562,11 +592,15 @@ def initScript(){
             String printJson = mapper.withDefaultPrettyPrinter().writeValueAsString(outBoxCard);
 
             def con = prepareConnectWithToken(baseUrl + 'OutboxResol', authorization)
-
             prepareRequestPOST(con, json)
             if (con.responseCode == 200){
                 def text = con.inputStream.text
                 logger.info("${LOG_PREFIX} Ответ в сторону Садко направлен, ответ от сервера: ${text}, сформированный запрос:\n${printJson}")
+                def sadkoView = utils.find('SadkoObj$SadkoAppeal', [Appeal:subject])[0]
+                Map<Object, Object> updateData = new HashMap<>()
+                updateData.put('Status', utils.find('SadkoStatus', [code:'code3']))
+                utils.edit(sadkoView.UUID, updateData)
+
             }else{
                 logger.error("${LOG_PREFIX} Ошибка в процедуре направления ответа  в сторону Садко, код ошибки: ${connection.responseCode}, ошибка: ${connection?.errorStream?.text}")
             }
@@ -578,6 +612,9 @@ def initScript(){
     }
 }
 
-
-initScript()
-
+/**
+ *  Проверку на Тип обращения
+ */
+if (subject.fromAp.title == 'ГИС САДКО.ОГ'){
+    initScript()
+}
