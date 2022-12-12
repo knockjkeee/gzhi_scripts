@@ -494,7 +494,7 @@ private void prepareLetterDetail(LetterDetail letterDetail) {
 }
 
 private void prepareResolution(ResolutionOut resolution) {
-    resolution.Guid = UUID.randomUUID().toString()                  //todo random поле
+    resolution.Guid = subject.UUID + '-' + UUID.randomUUID().toString().split('-')[0]                  //todo random поле
     resolution.CreatedTime = getStringFromDate(new Date())          //todo важное поле
 
     def empl = utils.find('employee', [UUID:'employee$73903'])[0]
@@ -533,7 +533,7 @@ private void prepareResolution(ResolutionOut resolution) {
 }
 
 private void prepareCard(Card card) { //todo важных полей нет
-//   card.Guid = subject.GuidSadko
+    card.Guid = subject.GuidSadko
     card.CitizenName = subject.LastName
     card.CitizenSurname = subject.FirstName
     card.CitizenPatronymic = subject.MiddleName
@@ -602,7 +602,7 @@ def initScript(){
                 utils.edit(sadkoView.UUID, updateData)
 
             }else{
-                logger.error("${LOG_PREFIX} Ошибка в процедуре направления ответа  в сторону Садко, код ошибки: ${connection.responseCode}, ошибка: ${connection?.errorStream?.text}")
+                logger.error("${LOG_PREFIX} Ошибка в процедуре направления ответа  в сторону Садко, код ошибки: ${con.responseCode}, ошибка: ${connection?.errorStream?.text}")
             }
         }else {
             logger.error("${LOG_PREFIX} Токен отсутствует, дальнейшая загрузка прерывается")
@@ -615,6 +615,6 @@ def initScript(){
 /**
  *  Проверку на Тип обращения
  */
-if (subject.fromAp.title == 'ГИС САДКО.ОГ'){
+if (subject.state == 'Responsesent' && subject.fromAp.title == 'ГИС САДКО.ОГ'){
     initScript()
 }
