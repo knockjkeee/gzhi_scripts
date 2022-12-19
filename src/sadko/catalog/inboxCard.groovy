@@ -432,7 +432,7 @@ InboxCard appealProcessing(String url, String token, String guid) {
         card = text as InboxCard
         return card
     } else {
-        logger.error("${LOG_PREFIX} Ошибка в запросе при получении обращения, код ошибки: ${response.responseCode}, guid: ${guid}")
+        logger.error("${LOG_PREFIX} Ошибка в запросе при получении обращения, код ошибки: ${response.responseCode}, guid: ${guid}, ошибка: ${response?.errorStream?.text}")
     }
     return card
 }
@@ -528,10 +528,18 @@ boolean prepareToDb(InboxCard card) {
 }
 
 def attachmentFiles(iCard card, obj){
+    def closure = {
+        utils.get(obj.docpack.UUID[0])
+    }
+    def dockpack = api.tx.call(closure)
+    if (obj.docpack.UUID[0] == null) return
     if (card.Files.size() > 0){
         for (def item : card.Files){
             byte[] file = Base64.decoder.decode(item.Data);
-            def attachedFile = utils.attachFile(utils.get(obj.docpack.UUID[0]), item.Name, '', '', file)
+            def attachedFiles = {
+                utils.attachFile(dockpack, item.Name, '', '', file)
+            }
+            def attachedFile = api.tx.call(attachedFiles)
             if (attachedFile != null){
                 logger.info("${LOG_PREFIX} Файл с именем ${item.Name} прикреплен к обращению ${obj.title} ${attachedFile.UUID}")
                 Map<Object, Object> updateData = new HashMap<>()
@@ -572,10 +580,11 @@ def createAppeal(iCard card){
         isCorrectlyAddress =  true
         updateData.put('house2', house[0])
         updateData.put('street2', house[0].stid)
-        updateData.put('indexAddr', card.CitizenAddressPost.trim())
+        if (card.CitizenAddressPost) updateData.put('indexAddr', card.CitizenAddressPost.trim())
         updateData.put('regionAp', house[0].region)
         updateData.put('organization', house[0].pdid)
-        updateData.put('typepd', house[0].pdid.pdtype)
+        if (house[0].pdid ) updateData.put('typepd', house[0].pdid.pdtype)
+
         //updateData.put('fiasHouse', house[1])
         updateData.put('room', house[2])
     }
@@ -640,15 +649,20 @@ def pushToMediumTable(iCard card){
     }
 
     if (obj == null){
-        obj = utils.create('SadkoObj$SadkoAppeal', updateData);
+        def closure = {
+            utils.create('SadkoObj$SadkoAppeal', updateData);
+        }
+        obj = api.tx.call(closure)
         if (card instanceof Resol) {
             logger.info("${LOG_PREFIX} Обьект в таблице \"Садко Обращения\", \"InboxResol\" создан, ID записи: ${card.Guid}")
         }else{
             logger.info("${LOG_PREFIX} Обьект в таблице \"Садко Обращения\", \"InboxLetter\"  создан, Адрес записи: ${card.CitizenAddress}")
         }
-
     }else{
-        obj = utils.edit(obj.UUID, updateData)
+        def closure = {
+            utils.edit(obj.UUID, updateData)
+        }
+        obj = api.tx.call(closure)
         if (card instanceof Resol) {
             logger.info("${LOG_PREFIX} Обьект в таблице \"Садко Обращения\" , \"InboxResol\" обновлен, ID записи: ${card.Guid}")
         }else{
@@ -657,6 +671,10 @@ def pushToMediumTable(iCard card){
     }
     return obj
 }
+
+
+//def addr = 'обл.Калужская, г.Калуга, ул.Суворова, д.89'
+//def parse = jsonSlurper.parseText(checkAddressByDadata(addr, 0))
 
 prepareSSLConnection()
 def connection = (HttpsURLConnection) new URL(connectUrl).openConnection()
@@ -671,10 +689,7 @@ if (connection.responseCode == 200) {
         def count = 0
         def guidList = []
         data?.each { inbox ->
-//            if (count > 0) return false
             InboxCard card = appealProcessing(baseUrl + urlFields.get(inbox.Type) + "/" + inbox.Guid, authorization, inbox.Guid)
-//            if (card != null && inbox.Guid == 'D0A7927F-02B1-40AF-B027-55A7B633EC3C') {
-//            if (card != null && inbox.Guid == '8DAB527A-A951-4996-995F-C7CD3AFF84C8') {
             if (card != null) {
                 card.Guid = inbox.Guid
                 boolean isLoad = prepareToDb(card)
@@ -691,7 +706,7 @@ if (connection.responseCode == 200) {
             def result = jsonSlurper.parseText(con.inputStream.text)
             logger.info("${LOG_PREFIX} Процедура подтверждения обработки обращений завершилась успешно: ${result}/${guidList.size()}")
         }else{
-            logger.error("${LOG_PREFIX} Ошибка в запросе при подтверждении обработки обращений, код ошибки: ${connection.responseCode}, ошибка: ${connection?.errorStream?.text}")
+            logger.error("${LOG_PREFIX} Ошибка в запросе при подтверждении обработки обращений, код ошибки: ${con.responseCode}, ошибка: ${con?.errorStream?.text}")
         }
     } else {
         logger.error("${LOG_PREFIX} Токен отсутствует, дальнейшая загрузка прерывается")
