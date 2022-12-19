@@ -508,6 +508,9 @@ def GetObjHouse(String address){
 boolean prepareToDb(InboxCard card) {
     if (card.Card != null || card.Letter != null){
         def obj = pushToMediumTable(card.Card != null ? card.Card : card.Letter)
+        if (card.Resolution != null){
+            updateResAuthorAndExecutor(card, obj)
+        }
         def appeal = createAppeal(card.Card != null ? card.Card : card.Letter)
         if (appeal[0] != null){
             Map<Object, Object> updateData = new HashMap<>()
@@ -525,6 +528,28 @@ boolean prepareToDb(InboxCard card) {
         return true
     }
     return false
+}
+
+private void updateResAuthorAndExecutor(InboxCard card, obj) {
+    Map<Object, Object> updateData = new HashMap<>()
+    def author = card.Resolution.Author
+    updateData.put('ResAuthorFIO', author.FIO)
+    updateData.put('ResAuthorFirsN', author.FirstName)
+    updateData.put('ResAuthorLastN', author.LastName)
+    updateData.put('ResAuthorMidN', author.MiddleName)
+    updateData.put('ResAuthorGuid', author.Guid)
+
+    def executor = card.Resolution.Executor
+    updateData.put('ResExecFIO', executor.FIO)
+    updateData.put('ResExecFirsN', executor.FirstName)
+    updateData.put('ResExecLastN', executor.LastName)
+    updateData.put('ResExecMidN', executor.MiddleName)
+    updateData.put('ResExecGuid', executor.Guid)
+
+    def closure = {
+        utils.edit(obj.UUID, updateData)
+    }
+    api.tx.call(closure)
 }
 
 def attachmentFiles(iCard card, obj){
@@ -634,21 +659,21 @@ def pushToMediumTable(iCard card){
     updateData.put('title', card.CitizenName + " " + card.CitizenSurname + " " + card.CitizenPatronymic)
 
     def obj
-    try {
-        if (card instanceof Resol) {
-            obj = utils.find('SadkoObj$SadkoAppeal', [Guid: card.Guid, typeAppeal: utils.find('SadkoTypeApp', [code:codeName])])[0]
-        }else{
-            obj = utils.find('SadkoObj$SadkoAppeal', [CitizenName: card.CitizenName, CitizenSurname: card.CitizenSurname,'CitizenPatrony': card.CitizenPatronymic, typeAppeal: utils.find('SadkoTypeApp', [code:codeName])])[0]
-        }
-    } catch (Exception e) {
-        if (card instanceof Resol) {
-            logger.error("${LOG_PREFIX} Ошибка поиска обьекта в таблице \"Садко Обращения\":, guid - ${card.Guid}, ошибка: ${e.message}")
-        }else{
-            logger.error("${LOG_PREFIX} Ошибка поиска обьекта в таблице \"Садко Обращения\", \"InboxLetter\", Адрес записи: ${card.CitizenAddress}, ошибка: ${e.message}")
-        }
-    }
+//    try {
+//        if (card instanceof Resol) {
+//            obj = utils.find('SadkoObj$SadkoAppeal', [Guid: card.Guid, typeAppeal: utils.find('SadkoTypeApp', [code:codeName])])[0]
+//        }else{
+//            obj = utils.find('SadkoObj$SadkoAppeal', [CitizenName: card.CitizenName, CitizenSurname: card.CitizenSurname,'CitizenPatrony': card.CitizenPatronymic, typeAppeal: utils.find('SadkoTypeApp', [code:codeName])])[0]
+//        }
+//    } catch (Exception e) {
+//        if (card instanceof Resol) {
+//            logger.error("${LOG_PREFIX} Ошибка поиска обьекта в таблице \"Садко Обращения\":, guid - ${card.Guid}, ошибка: ${e.message}")
+//        }else{
+//            logger.error("${LOG_PREFIX} Ошибка поиска обьекта в таблице \"Садко Обращения\", \"InboxLetter\", Адрес записи: ${card.CitizenAddress}, ошибка: ${e.message}")
+//        }
+//    }
 
-    if (obj == null){
+//    if (obj == null){
         def closure = {
             utils.create('SadkoObj$SadkoAppeal', updateData);
         }
@@ -658,17 +683,17 @@ def pushToMediumTable(iCard card){
         }else{
             logger.info("${LOG_PREFIX} Обьект в таблице \"Садко Обращения\", \"InboxLetter\"  создан, Адрес записи: ${card.CitizenAddress}")
         }
-    }else{
-        def closure = {
-            utils.edit(obj.UUID, updateData)
-        }
-        obj = api.tx.call(closure)
-        if (card instanceof Resol) {
-            logger.info("${LOG_PREFIX} Обьект в таблице \"Садко Обращения\" , \"InboxResol\" обновлен, ID записи: ${card.Guid}")
-        }else{
-            logger.info("${LOG_PREFIX} Обьект в таблице \"Садко Обращения\", \"InboxLetter\" обновлен, Адрес записи:${card.CitizenAddress}")
-        }
-    }
+//    }else{
+//        def closure = {
+//            utils.edit(obj.UUID, updateData)
+//        }
+//        obj = api.tx.call(closure)
+//        if (card instanceof Resol) {
+//            logger.info("${LOG_PREFIX} Обьект в таблице \"Садко Обращения\" , \"InboxResol\" обновлен, ID записи: ${card.Guid}")
+//        }else{
+//            logger.info("${LOG_PREFIX} Обьект в таблице \"Садко Обращения\", \"InboxLetter\" обновлен, Адрес записи:${card.CitizenAddress}")
+//        }
+//    }
     return obj
 }
 
@@ -686,7 +711,6 @@ if (connection.responseCode == 200) {
         def authorization = connect.token_type + " " + connect.access_token
         def data = loadInboxData(authorization)
         def urlFields = MappingTypeUrl.getMapFields()
-        def count = 0
         def guidList = []
         data?.each { inbox ->
             InboxCard card = appealProcessing(baseUrl + urlFields.get(inbox.Type) + "/" + inbox.Guid, authorization, inbox.Guid)
@@ -698,7 +722,6 @@ if (connection.responseCode == 200) {
                     logger.info("${LOG_PREFIX} Обращение, c атрибутами: тип - ${inbox.Type}, guid - ${inbox.Guid}, загружено")
                 }
             }
-            count++
         }
         def con = prepareConnectWithToken(baseUrl + 'InboxProcessingConfirmation', authorization)
         prepareRequestPOST(con, guidList.toString())
