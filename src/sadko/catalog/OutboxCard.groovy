@@ -14,7 +14,7 @@ import java.util.logging.Logger
 
 @Field final Logger logger = Logger.getLogger("") //todo off in web
 
-def ver = 0.1
+def ver = 0.2
 
 
 class TrustHostnameVerifiero implements HostnameVerifier {
