@@ -493,25 +493,75 @@ private void prepareLetterDetail(LetterDetail letterDetail) {
     letterDetail.StatusId = 0
 }
 
-private void prepareResolution(ResolutionOut resolution) {
-    resolution.Guid = subject.UUID + '-' + UUID.randomUUID().toString().split('-')[0]                  //todo random поле
-    resolution.CreatedTime = getStringFromDate(new Date())          //todo важное поле
-
-    def empl = utils.find('employee', [UUID:'employee$73903'])[0]
-
+UserOut getDefaultUser(empl){
     UserOut user = new UserOut()
-    //user.Guid = empl.guid
     user.Guid = 'AB172B74-45DC-486F-B44B-0CFEFE4EA251'              //todo id взят из примера
     user.LastName = empl.lastName
     user.FirstName = empl.firstName
     user.MiddleName = empl.middleName
     user.FIO = empl.title
+    return user
+}
 
-    resolution.Author = user                                        //todo важное поле
-    resolution.executor = user                                      //todo важное поле
+private void prepareResolution(ResolutionOut resolution) {
+    boolean isFind = true
+    def guid
+    def sub
+    while (isFind){
+        guid = UUID.randomUUID().toString()
+        def closure = {
+            utils.find('SadkoObj$SadkoResolut', [GUID:guid])[0]
+        }
+        sub = api.tx.call(closure)
+
+        if (sub == null){
+            isFind = false
+        }else{
+            sleep(1000)
+        }
+    }
+    Map<Object, Object> updateData = new HashMap<>()
+    updateData.put('GUID', guid)
+    updateData.put('appeal', subject)
+    updateData.put('title', subject.title)
+    utils.create('SadkoObj$SadkoResolut', updateData);
+
+//    resolution.Guid = subject.UUID + '-' + UUID.randomUUID().toString().split('-')[0]                  //todo random поле
+    resolution.Guid = guid
+    resolution.CreatedTime = getStringFromDate(new Date())          //todo важное поле
+
+    def empl = utils.find('employee', [UUID:'employee$73903'])[0]
+    def sadkoAppeal = utils.find('SadkoObj$SadkoAppeal', [Appeal:subject])[0]
+
+    if (sadkoAppeal.ResAuthorGuid == null){
+        UserOut user = getDefaultUser(empl)
+        resolution.Author = user                                        //todo важное поле
+        resolution.executor = user                                      //todo важное поле
+    }else {
+        if (sadkoAppeal.ResExecGuid != null){
+            UserOut author = new UserOut()
+            author.Guid = sadkoAppeal.ResExecGuid
+            author.MiddleName = sadkoAppeal.ResExecMidN
+            author.LastName = sadkoAppeal.ResExecLastN
+            author.FirstName = sadkoAppeal.ResExecFirsN
+            author.FIO = sadkoAppeal.ResExecFIO
+            resolution.Author = author
+        }else {
+            UserOut author = getDefaultUser(empl)
+            resolution.Author = author
+        }
+        UserOut executor = new UserOut()
+        executor.Guid = sadkoAppeal.ResAuthorGuid
+        executor.MiddleName = sadkoAppeal.ResAuthorMidN
+        executor.LastName = sadkoAppeal.ResAuthorLastN
+        executor.FirstName = sadkoAppeal.ResAuthorFirsN
+        executor.FIO = sadkoAppeal.ResAuthorFIO
+        resolution.Executor = executor
+    }
+
 //    resolution.DecisionId = 3
 //    resolution.ResolutionText = 'Направляется ответ на ваш запрос'
-    resolution.ResolutionText = 'empty'
+    resolution.ResolutionText = 'Ответ на Ваше поручение'
     //resolution.ControlDate = '2022-11-28T00:00:00'
 
 //    ThemeOut theme = new ThemeOut()
@@ -562,7 +612,6 @@ private void prepareCard(Card card) { //todo важных полей нет
     addFiles(card.files, response)
     addFiles(card.files, intresponse)
 }
-
 
 def initScript(){
     prepareSSLConnection()
