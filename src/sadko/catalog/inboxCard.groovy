@@ -17,9 +17,9 @@ import java.util.regex.Matcher
 def version = 0.2
 
 
-
-interface iCard {}
-
+/**
+ * Перечисление типов обращений от Садко
+ */
 enum MappingTypeUrl {
     resolution("resolution", "InboxResol"),
     letter("letter", "InboxLetter"),
@@ -39,6 +39,11 @@ enum MappingTypeUrl {
     }
 }
 
+interface iCard {}
+
+/**
+ * Обьект десериализации обращения от Садко
+ */
 class InboxCard {
     Resol Card
     Resolution Resolution
@@ -165,6 +170,9 @@ class FileData {
     String Data                     // Закодированное в строку base64 содержимое файла
 }
 
+/**
+ * Обьект для получения токена от Садко
+ */
 class ConnectSADKO {
     String access_token
     int expires_in
@@ -184,7 +192,14 @@ class Inbox {
     }
 }
 
+/**
+ * Класс парчинга адреса
+ */
 class PrepareAddress {
+
+    /**
+     * Разбор адреса в ручнои режиме, при согласованной стандартизации
+     */
     static Map<String, String> sliceAddress(String address) {
         def slice = address.split(',')
         Map<String, String> map = new HashMap<>()
@@ -230,6 +245,9 @@ class PrepareAddress {
         return map
     }
 
+    /**
+     * Забрать значении по ключу "улица"
+     */
     static String getStreet(Map<String, String> map) {
         def street = ['ул', 'пр', 'пл', 'пер']
         for (def val : street) {
@@ -238,6 +256,9 @@ class PrepareAddress {
         return null
     }
 
+    /**
+     * Забрать значении по ключу "город"
+     */
     static String getLocality(Map<String, String> map) {
         def street = ['г', 'дер']
         for (def val : street) {
@@ -246,6 +267,9 @@ class PrepareAddress {
         return null
     }
 
+    /**
+     * Проверка забранного адреса с обьектами naumen @Deprecated
+     */
     static boolean sliceContainsAddressDep(String address, String value) {
         def split = address.split(', ')
         for (def item : split) {
@@ -264,6 +288,9 @@ class PrepareAddress {
         return false
     }
 
+    /**
+     * Проверка забранного адреса с обьектами naumen
+     */
     static boolean sliceContainsAddress(String address, String value) {
         def split = address.split(' ')
         for (def item : split) {
@@ -283,6 +310,9 @@ class PrepareAddress {
         return false
     }
 
+    /**
+     * Точка сверки руского поиска адреса и обьектом БД
+     */
     static boolean checkMatchAddress(String street, String address, String valueDb) {
         def isContainsMain = street == null ? false :valueDb.contains(street.trim())
         if (isContainsMain) return isContainsMain
@@ -290,16 +320,13 @@ class PrepareAddress {
         return isContains
     }
 
+    /**
+     * Regex, поиск адреса
+     */
     def static matchAddress(String predicate, String address, boolean isString = false, boolean isHome = false) {
-        //([А-Я][а-я]+(-?[А-Я][а-я]+)?)
         def preparePattern = isString ? "(\\s|\\.)([А-Я][а-я]+)" : "(\\.|\\s?)\\s*?(\\d+[.*?]*)"
-//        def preparePattern = isString ? "(\\s|\\.)([А-Я][а-я]+(-?[А-Я][а-я]+)?)" : "(\\.|\\s?)\\s*?(\\d+[.*?]*)"
-//    def preparePatternRevers = isString ? "([\\wА-Яа-я\\-]+)(\\s|\\.)?" : "(\\d+[.*?]*)\\s*?"
         def preparePatternRevers = isString ? "[A-Я][a-я]+(\\s|\\.)" : "(\\d+[.*?]*)\\s*?"
-//        def preparePatternRevers = isString ? "([А-Я][а-я]+(-?[А-Я][а-я]+)?)(\\s|\\.)" : "(\\d+[.*?]*)\\s*?"
-
         def patternFirstNum = "\\s(\\d+[.*?]*)"
-//    def patternFirstNum = "[1-9]\\d*"
         def pattern = "${predicate}${preparePattern}"
         def patternRevers = "${preparePatternRevers}${predicate}"
 
@@ -331,6 +358,9 @@ class PrepareAddress {
         }
     }
 
+    /**
+     * Совпадение по числу
+     */
     def static checkMatchNumber(Matcher matches) {
         def number = null
         matches[0].each { String val ->
@@ -341,6 +371,9 @@ class PrepareAddress {
         return number
     }
 
+    /**
+     * Совпадение по строке
+     */
     def static checkMatchString(Matcher matches, boolean isRevers = false) {
         def list = matches[0] as ArrayList
         String res = isRevers && list.size() > 1 ? list[0].split(" ")[0] : list[list.size() - 1]
@@ -348,6 +381,9 @@ class PrepareAddress {
     }
 }
 
+/**
+ * Класс проверки host соединения
+ */
 class TrustHostnameVerifierInbox implements HostnameVerifier {
     @Override
     boolean verify(String hostname, SSLSession session) {
@@ -355,6 +391,9 @@ class TrustHostnameVerifierInbox implements HostnameVerifier {
     }
 }
 
+/**
+ * Подготовка SSL соединения
+ */
 def prepareSSLConnection() {
     def context = SSLContext.getInstance('SSL')
     def tks = KeyStore.getInstance(KeyStore.defaultType);
@@ -368,6 +407,9 @@ def prepareSSLConnection() {
     HttpsURLConnection.setDefaultHostnameVerifier(new TrustHostnameVerifierInbox())
 }
 
+/**
+ * Подготовка POST запроса
+ */
 def prepareRequestPOST(HttpsURLConnection response, String data, boolean isConnect = false) {
     byte[] postData = data.getBytes(Charset.forName("utf-8"));
     response.setDoOutput(true);
@@ -386,17 +428,26 @@ def prepareRequestPOST(HttpsURLConnection response, String data, boolean isConne
     outStream.close()
 }
 
+/**
+ * Проброска токена в header
+ */
 HttpsURLConnection prepareConnectWithToken(String url, String token) {
     def response = (HttpsURLConnection) new URL(url).openConnection()
     response.setRequestProperty("Authorization", token);
     return response
 }
 
+/**
+ * Взаимодействие с сервисом Dadata.ru
+ */
 def checkAddressByDadata(String address, int index ) {
-    def response = ["curl", "-X", "POST", "-H", "Content-Type: application/json", "-H", TOKEN[index], "-H", SECRET[index], "-d", ["\"" + address + "\""], "https://cleaner.dadata.ru/api/v1/clean/address"].execute().text
+    def response = ["curl", "-X", "POST", "-H", "Content-Type: application/json", "-H", TOKEN, "-H", SECRET, "-d", ["\"" + address + "\""], "https://cleaner.dadata.ru/api/v1/clean/address"].execute().text
     return response
 }
 
+/**
+ * Проверка необработанных запросов
+ */
 List loadInboxData(String token) {
     def response = prepareConnectWithToken(baseUrl + "Inbox", token)
     List<Inbox> result = new ArrayList<>();
@@ -414,6 +465,9 @@ List loadInboxData(String token) {
     return result
 }
 
+/**
+ * Десериализация списка необработанных запросов к обьектам Inbox
+ */
 List<Inbox> prepareInboxObjects(List list) {
     if (list == null) return new ArrayList<Inbox>();
     List<Inbox> result = new ArrayList<>()
@@ -424,6 +478,9 @@ List<Inbox> prepareInboxObjects(List list) {
     return result
 }
 
+/**
+ * Таргетированный запрос по обращению
+ */
 InboxCard appealProcessing(String url, String token, String guid) {
     InboxCard card
     def response = prepareConnectWithToken(url, token)
@@ -432,18 +489,30 @@ InboxCard appealProcessing(String url, String token, String guid) {
         card = text as InboxCard
         return card
     } else {
-        logger.error("${LOG_PREFIX} Ошибка в запросе при получении обращения, код ошибки: ${response.responseCode}, guid: ${guid}, ошибка: ${response?.errorStream?.text}")
+        def errorText = "${LOG_PREFIX} Ошибка в запросе при получении обращения, код ошибки: ${response.responseCode}, guid: ${guid}, ошибка: ${response?.errorStream?.text}"
+        pushToMediumTableErrorText(errorText, null)
+        logger.error(errorText)
     }
     return card
 }
 
+/**
+ * Перевод строки в дату и время
+ */
 private Date parseDateTimeFromString(obj) {
     return Date.parse(DATE_TIME_FORMAT, LocalDateTime.parse(obj.toString().replaceAll("\\s", "T")).format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT)).toString())
 }
+
+/**
+ * Перевод строки в дату
+ */
 private Date parseDateFromString(obj) {
     return Date.parse(DATE_FORMAT, LocalDate.parse(obj.toString()).format(DateTimeFormatter.ofPattern(DATE_FORMAT)).toString())
 }
 
+/**
+ * Поиск значения по индексу из пользовательских справочников
+ */
 def getCatalogItem(String catalogName, String directoryName, String id){
     def catalog = utils.find('SadkoCatalog$' + catalogName, [itemId:id])[0]
     String itemName = catalog.itemMap == 'empty' ? catalog.itemName : catalog.itemMap
@@ -451,10 +520,16 @@ def getCatalogItem(String catalogName, String directoryName, String id){
     return directoryItem
 }
 
+/**
+ * Проверка на null
+ */
 String checkFieldOnNull(String item){
     return item == null ? "Текст отсутсвует" : item
 }
 
+/**
+ * Поиск обьекта "дом" в базе naumen
+ */
 def GetObjHouse(String address){
     //Первый этап поиска с помощью Dadata.ru
     def parse = jsonSlurper.parseText(checkAddressByDadata(address, 0))
@@ -505,9 +580,14 @@ def GetObjHouse(String address){
     return null
 }
 
+/**
+ * Подготовка обьекта в БД naumen
+ */
 boolean prepareToDb(InboxCard card) {
+    def errorText
+    def obj
     if (card.Card != null || card.Letter != null){
-        def obj = pushToMediumTable(card.Card != null ? card.Card : card.Letter)
+        obj = pushToMediumTable(card.Card != null ? card.Card : card.Letter)
         if (card.Resolution != null){
             updateResAuthorAndExecutor(card, obj)
         }
@@ -523,13 +603,18 @@ boolean prepareToDb(InboxCard card) {
                 updateData.put('Status', utils.find('SadkoStatus', [code:'code5']))
             }
             utils.edit(obj.UUID, updateData)
+            attachmentFiles(card.Card != null ? card.Card : card.Letter, appeal[0])
+            return true
         }
-        attachmentFiles(card.Card != null ? card.Card : card.Letter, appeal[0])
-        return true
     }
+    errorText = "В обращение по идентификатору №${card.Guid}, отсутсвует обьект с атрибутами"
+    pushToMediumTableErrorText(errorText, obj)
     return false
 }
 
+/**
+ * Контроль авторов и исполнителей из резолюции от Садко
+ */
 private void updateResAuthorAndExecutor(InboxCard card, obj) {
     Map<Object, Object> updateData = new HashMap<>()
     def author = card.Resolution.Author
@@ -552,6 +637,9 @@ private void updateResAuthorAndExecutor(InboxCard card, obj) {
     api.tx.call(closure)
 }
 
+/**
+ * Добавление файлов от Садко к обекту обращения naumen
+ */
 def attachmentFiles(iCard card, obj){
     def closure = {
         utils.get(obj.docpack.UUID[0])
@@ -577,6 +665,9 @@ def attachmentFiles(iCard card, obj){
     }
 }
 
+/**
+ * Создание обращения в naumen
+ */
 def createAppeal(iCard card){
     boolean isCorrectlyAddress = false
     Map<Object, Object> updateData = new HashMap<>()
@@ -637,6 +728,24 @@ def createAppeal(iCard card){
     return [obj, isCorrectlyAddress]
 }
 
+/**
+ * Сохранения текста ошибки при взаимодейтвии с сервисами Садко
+ */
+def pushToMediumTableErrorText(def text, obj){
+    Map<Object, Object> updateData = new HashMap<>()
+    updateData.put('ResponseError', text)
+    updateData.put('Status', utils.find('SadkoStatus', [code:'code4']))
+    if (obj != null){
+        utils.edit(obj.UUID, updateData)
+    }else{
+        updateData.put('title', "Error response")
+        utils.create('SadkoObj$SadkoAppeal', updateData);
+    }
+}
+
+/**
+ * Создание обьекта в отчетности "САДКО" naumen
+ */
 def pushToMediumTable(iCard card){
     Map<Object, Object> updateData = new HashMap<>()
     if (card instanceof Resol){
@@ -659,48 +768,22 @@ def pushToMediumTable(iCard card){
     updateData.put('title', card.CitizenName + " " + card.CitizenSurname + " " + card.CitizenPatronymic)
 
     def obj
-//    try {
-//        if (card instanceof Resol) {
-//            obj = utils.find('SadkoObj$SadkoAppeal', [Guid: card.Guid, typeAppeal: utils.find('SadkoTypeApp', [code:codeName])])[0]
-//        }else{
-//            obj = utils.find('SadkoObj$SadkoAppeal', [CitizenName: card.CitizenName, CitizenSurname: card.CitizenSurname,'CitizenPatrony': card.CitizenPatronymic, typeAppeal: utils.find('SadkoTypeApp', [code:codeName])])[0]
-//        }
-//    } catch (Exception e) {
-//        if (card instanceof Resol) {
-//            logger.error("${LOG_PREFIX} Ошибка поиска обьекта в таблице \"Садко Обращения\":, guid - ${card.Guid}, ошибка: ${e.message}")
-//        }else{
-//            logger.error("${LOG_PREFIX} Ошибка поиска обьекта в таблице \"Садко Обращения\", \"InboxLetter\", Адрес записи: ${card.CitizenAddress}, ошибка: ${e.message}")
-//        }
-//    }
-
-//    if (obj == null){
-        def closure = {
-            utils.create('SadkoObj$SadkoAppeal', updateData);
-        }
-        obj = api.tx.call(closure)
-        if (card instanceof Resol) {
-            logger.info("${LOG_PREFIX} Обьект в таблице \"Садко Обращения\", \"InboxResol\" создан, ID записи: ${card.Guid}")
-        }else{
-            logger.info("${LOG_PREFIX} Обьект в таблице \"Садко Обращения\", \"InboxLetter\"  создан, Адрес записи: ${card.CitizenAddress}")
-        }
-//    }else{
-//        def closure = {
-//            utils.edit(obj.UUID, updateData)
-//        }
-//        obj = api.tx.call(closure)
-//        if (card instanceof Resol) {
-//            logger.info("${LOG_PREFIX} Обьект в таблице \"Садко Обращения\" , \"InboxResol\" обновлен, ID записи: ${card.Guid}")
-//        }else{
-//            logger.info("${LOG_PREFIX} Обьект в таблице \"Садко Обращения\", \"InboxLetter\" обновлен, Адрес записи:${card.CitizenAddress}")
-//        }
-//    }
+    def closure = {
+        utils.create('SadkoObj$SadkoAppeal', updateData);
+    }
+    obj = api.tx.call(closure)
+    if (card instanceof Resol) {
+        logger.info("${LOG_PREFIX} Обьект в таблице \"Садко Обращения\", \"InboxResol\" создан, ID записи: ${card.Guid}")
+    }else{
+        logger.info("${LOG_PREFIX} Обьект в таблице \"Садко Обращения\", \"InboxLetter\"  создан, Адрес записи: ${card.CitizenAddress}")
+    }
     return obj
 }
 
 
-//def addr = 'обл.Калужская, г.Калуга, ул.Суворова, д.89'
-//def parse = jsonSlurper.parseText(checkAddressByDadata(addr, 0))
-
+/**
+ * Entry point script
+ */
 prepareSSLConnection()
 def connection = (HttpsURLConnection) new URL(connectUrl).openConnection()
 prepareRequestPOST(connection, urlConnectParam, true)
@@ -729,11 +812,17 @@ if (connection.responseCode == 200) {
             def result = jsonSlurper.parseText(con.inputStream.text)
             logger.info("${LOG_PREFIX} Процедура подтверждения обработки обращений завершилась успешно: ${result}/${guidList.size()}")
         }else{
-            logger.error("${LOG_PREFIX} Ошибка в запросе при подтверждении обработки обращений, код ошибки: ${con.responseCode}, ошибка: ${con?.errorStream?.text}")
+            def errorText = "${LOG_PREFIX} Ошибка в запросе при подтверждении обработки обращений, код ошибки: ${con.responseCode}, ошибка: ${con?.errorStream?.text}"
+            pushToMediumTableErrorText(errorText, null)
+            logger.error(errorText)
         }
     } else {
-        logger.error("${LOG_PREFIX} Токен отсутствует, дальнейшая загрузка прерывается")
+        def errorText = "${LOG_PREFIX} Токен отсутствует, дальнейшая загрузка прерывается"
+        pushToMediumTableErrorText(errorText, null)
+        logger.error(errorText)
     }
 } else {
-    logger.error("${LOG_PREFIX} Ошибка в запросе при получении токена, код ошибки: ${connection.responseCode}, ошибка: ${connection?.errorStream?.text}")
+    def errorText = "${LOG_PREFIX} Ошибка в запросе при получении токена, код ошибки: ${connection.responseCode}, ошибка: ${connection?.errorStream?.text}"
+    pushToMediumTableErrorText(errorText, null)
+    logger.error(errorText)
 }
