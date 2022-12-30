@@ -14,6 +14,7 @@ import java.util.logging.Logger
 
 
 
+
 class GetAddControlMeasuresData {
     public String = ""
     private static Map data = [
@@ -358,6 +359,9 @@ class GetTakenMeasuresData {
     }
 }
 
+/**
+ * Перечисление справочников
+ */
 enum Catalog {
     GetAddControlMeasures("ControlMeasure","Справочник Дополнительные меры контроля", GetAddControlMeasuresData.getData()),
     GetCitizenAddressAreas("CitizenAddArea","Справочник районов", GetCitizenAddressAreasData.getData()),
@@ -386,6 +390,9 @@ enum Catalog {
     }
 }
 
+/**
+ * Класс проверки host соединения
+ */
 class TrustHostnameVerifier implements HostnameVerifier {
     @Override
     boolean verify(String hostname, SSLSession session) {
@@ -393,6 +400,9 @@ class TrustHostnameVerifier implements HostnameVerifier {
     }
 }
 
+/**
+ * Обьект для получения токена от Садко
+ */
 class ConnectSADKOc {
     String access_token
     int expires_in
@@ -400,6 +410,9 @@ class ConnectSADKOc {
     String scope
 }
 
+/**
+ * Подготовка SSL соединения
+ */
 def prepareSSLConnection() {
     def context = SSLContext.getInstance('SSL')
     def tks = KeyStore.getInstance(KeyStore.defaultType);
@@ -413,12 +426,18 @@ def prepareSSLConnection() {
     HttpsURLConnection.setDefaultHostnameVerifier(new TrustHostnameVerifier())
 }
 
+/**
+ * Проброска токена в header
+ */
 HttpsURLConnection prepareConnectWithToken(String url, String token) {
     def response = (HttpsURLConnection) new URL(url).openConnection()
     response.setRequestProperty("Authorization", token);
     return response
 }
 
+/**
+ * Подготовка POST запроса
+ */
 def prepareRequestPOST(HttpsURLConnection response, String data, boolean isConnect = false) {
     byte[] postData = data.getBytes(Charset.forName("utf-8"));
     response.setDoOutput(true);
@@ -437,6 +456,9 @@ def prepareRequestPOST(HttpsURLConnection response, String data, boolean isConne
     outStream.close()
 }
 
+/**
+ * Обновление даннызх в базе naumen
+ */
 def updateDataToDb(ArrayList data, Catalog item) {
     def catalogName = item.desc + " [ " + item.tName + " ]"
     for (def val in data) {
@@ -467,6 +489,9 @@ def updateDataToDb(ArrayList data, Catalog item) {
     }
 }
 
+/**
+ * Парсинг данных из справочников Садко
+ */
 def parseData(String response, Catalog item) {
     def catalogName = item.desc + " [ " + item.name() + " ]"
     ArrayList data
@@ -482,6 +507,9 @@ def parseData(String response, Catalog item) {
     }
 }
 
+/**
+ * Загрука каталогов от Садко
+ */
 def loadCatalog(Catalog item, token) {
     def catalogName = item.desc + " [ " + item.name() + " ]"
     def url = baseUrl + item.name()
@@ -494,15 +522,9 @@ def loadCatalog(Catalog item, token) {
     logger.info(LOG_PREFIX + catalogName + " загружен")
 }
 
-//////// CREATE CATALOG CSV //////
-//def createCatalogCSV (dataCSV){
-//    def file = new File('/Users/knockjkeee/IdeaProjects/gzhiKaluga/src/sadko/catalog/Catalog.csv')
-//    file.createNewFile()
-//    dataCSV.forEach(item -> file.append(item + "\n"))
-//}
-//def dataCSV = []
-
-
+/**
+ * Entry point script
+ */
 prepareSSLConnection()
 def connection = (HttpsURLConnection) new URL(connectUrl).openConnection()
 prepareRequestPOST(connection, urlConnectParam, true)
