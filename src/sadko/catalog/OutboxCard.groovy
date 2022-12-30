@@ -17,6 +17,10 @@ import java.util.logging.Logger
 def ver = 0.2
 
 
+
+/**
+ * Класс проверки host соединения
+ */
 class TrustHostnameVerifiero implements HostnameVerifier {
     @Override
     boolean verify(String hostname, SSLSession session) {
@@ -24,6 +28,9 @@ class TrustHostnameVerifiero implements HostnameVerifier {
     }
 }
 
+/**
+ * Подготовка SSL соединения
+ */
 class ConnectSADKOo {
     String access_token
     int expires_in
@@ -31,6 +38,9 @@ class ConnectSADKOo {
     String scope
 }
 
+/**
+ * Обьект отправки обращения в Садко
+ */
 @JsonPropertyOrder(['Card', 'Resolution', 'LetterDetail', 'СonsiderationResultGzi'])
 class OutBoxCard {
     Card Card
@@ -411,6 +421,9 @@ class UserOut {
     }
 }
 
+/**
+ * Подготовка SSL соединения
+ */
 def prepareSSLConnection() {
     def context = SSLContext.getInstance('SSL')
     def tks = KeyStore.getInstance(KeyStore.defaultType);
@@ -424,12 +437,18 @@ def prepareSSLConnection() {
     HttpsURLConnection.setDefaultHostnameVerifier(new TrustHostnameVerifiero())
 }
 
+/**
+ * Проброска токена в header
+ */
 HttpsURLConnection prepareConnectWithToken(String url, String token) {
     def response = (HttpsURLConnection) new URL(url).openConnection()
     response.setRequestProperty("Authorization", token);
     return response
 }
 
+/**
+ * Подготовка POST запроса
+ */
 def prepareRequestPOST(HttpsURLConnection response, String data, boolean isConnect = false) {
     byte[] postData = data.getBytes(Charset.forName("utf-8"));
     response.setDoOutput(true);
@@ -448,6 +467,9 @@ def prepareRequestPOST(HttpsURLConnection response, String data, boolean isConne
     outStream.close()
 }
 
+/**
+ * Поиск индекса по значению из пользовательских справочников
+ */
 def getCatalogItem(String catalogName, String name){
     if (name == null) return 0
     def itemName = utils.find('SadkoCatalog$' + catalogName, [itemName:name])[0]
@@ -456,11 +478,17 @@ def getCatalogItem(String catalogName, String name){
     return itemMap != null ? itemMap.itemId : 0
 }
 
+/**
+ * Формат даты в строку
+ */
 String getStringFromDate(Date date){
     if (date == null) return null
     return date.format("yyyy-MM-dd'T'HH:mm:ss")
 }
 
+/**
+ * Добавление файла из БД к обьекту ответа
+ */
 def addFiles (ArrayList<FileDataOut> files, obj){
     if (obj != null){
         byte[] data = utils.readFileContent(obj)
@@ -474,6 +502,9 @@ def addFiles (ArrayList<FileDataOut> files, obj){
     }
 }
 
+/**
+ * Подготовка внутреннего обьекта СonsiderationResult
+ */
 private void prepareСonsiderationResult(СonsiderationResultGzi considerationResults) {
     //considerationResults.Code = '0005.0005.0056.1147'
     considerationResults.ResultId = 0
@@ -483,6 +514,9 @@ private void prepareСonsiderationResult(СonsiderationResultGzi considerationRe
     considerationResults.headSign = true
 }
 
+/**
+ * Подготовка внутреннего обьекта LetterDetai
+ */
 private void prepareLetterDetail(LetterDetail letterDetail) {
     letterDetail.Closed = getStringFromDate(subject.dateanswer)     //todo важное поле
     letterDetail.Sended = getStringFromDate(subject.dateanswer)     //todo важное поле
@@ -493,6 +527,9 @@ private void prepareLetterDetail(LetterDetail letterDetail) {
     letterDetail.StatusId = 0
 }
 
+/**
+ * Стандартные аттрибуты пользователя для ответа
+ */
 UserOut getDefaultUser(empl){
     UserOut user = new UserOut()
     user.Guid = 'AB172B74-45DC-486F-B44B-0CFEFE4EA251'              //todo id взят из примера
@@ -503,6 +540,9 @@ UserOut getDefaultUser(empl){
     return user
 }
 
+/**
+ * Подготовка внутреннего обьекта Resolution
+ */
 private void prepareResolution(ResolutionOut resolution) {
     boolean isFind = true
     def guid
@@ -582,6 +622,9 @@ private void prepareResolution(ResolutionOut resolution) {
 
 }
 
+/**
+ * Подготовка внутреннего обьекта Card
+ */
 private void prepareCard(Card card) { //todo важных полей нет
     card.Guid = subject.GuidSadko
     card.CitizenName = subject.LastName
@@ -613,6 +656,24 @@ private void prepareCard(Card card) { //todo важных полей нет
     addFiles(card.files, intresponse)
 }
 
+/**
+ * Сохранения текста ошибки при взаимодейтвии с сервисами Садко
+ */
+def pushToMediumTableErrorText(def text, obj){
+    Map<Object, Object> updateData = new HashMap<>()
+    updateData.put('ResponseError', text)
+    updateData.put('Status', utils.find('SadkoStatus', [code:'code4']))
+    if (obj != null){
+        utils.edit(obj.UUID, updateData)
+    }else{
+        updateData.put('title', "Error response")
+        utils.create('SadkoObj$SadkoAppeal', updateData);
+    }
+}
+
+/**
+ * Запуск скрипта
+ */
 def initScript(){
     prepareSSLConnection()
     def connection = (HttpsURLConnection) new URL(connectUrl).openConnection()
@@ -651,7 +712,12 @@ def initScript(){
                 utils.edit(sadkoView.UUID, updateData)
 
             }else{
-                logger.error("${LOG_PREFIX} Ошибка в процедуре направления ответа  в сторону Садко, код ошибки: ${con.responseCode}, ошибка: ${connection?.errorStream?.text}")
+                def errorText = "${LOG_PREFIX} Ошибка в процедуре направления ответа  в сторону Садко, код ошибки: ${con.responseCode}, ошибка: ${connection?.errorStream?.text}"
+                def obj = utils.find('SadkoObj$SadkoAppeal', [UUID:subject.UUID])[0];
+                if (obj != null){
+                    pushToMediumTableErrorText(errorText, obj)
+                }
+                logger.error(errorText)
             }
         }else {
             logger.error("${LOG_PREFIX} Токен отсутствует, дальнейшая загрузка прерывается")
@@ -663,6 +729,7 @@ def initScript(){
 
 /**
  *  Проверку на Тип обращения
+ *  Entry point script
  */
 if (subject.state == 'Responsesent' && subject.fromAp.title == 'ГИС САДКО.ОГ'){
     initScript()
