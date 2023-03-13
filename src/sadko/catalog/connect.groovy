@@ -71,14 +71,14 @@ HttpsURLConnection.setDefaultHostnameVerifier(hostnameVerifier)
 //    println(firstRequest.inputStream.text)
 //    logger.error(firstRequest.inputStream.text)
 //}
-
-
-//def url = ""
-//def secondRequest = new URL(url).openConnection() as HttpURLConnection
-//if(secondRequest.responseCode == 200){
-//    println(secondRequest.inputStream.text)
-//    logger.error(secondRequest.inputStream.text)
-//}
+//
+//
+def url = "https://62.148.156.120:59456/api/Dir/GetCitizenAddressAreas"
+def secondRequest = new URL(url).openConnection() as HttpURLConnection
+if(secondRequest.responseCode == 200){
+    println(secondRequest.inputStream.text)
+    logger.error(secondRequest.inputStream.text)
+}
 
 println('Finish')
 
