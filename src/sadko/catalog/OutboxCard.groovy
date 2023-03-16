@@ -9,14 +9,17 @@ import groovy.transform.Field
 
 import javax.net.ssl.*
 import java.nio.charset.Charset
-import java.security.KeyStore
-import java.util.logging.Logger
+import java.security.SecureRandom
+//@Field final Logger logger = Logger.getLogger("") //todo off in web
 
-@Field final Logger logger = Logger.getLogger("") //todo off in web
+def ver = 0.1
 
-def ver = 0.2
+@Field final JsonSlurper jsonSlurper = new JsonSlurper()
+@Field final String LOG_PREFIX = "[САДКО: выгрузка обращений] "
 
-
+final String baseUrl = utils.get('root', [:]).urlSadko + "api/ExchangeGzi/"
+final String connectUrl = utils.get('root', [:]).urlSadko + "connect/token"
+final String urlConnectParam = utils.get('root', [:]).authSadko
 
 /**
  * Класс проверки host соединения
@@ -425,16 +428,12 @@ class UserOut {
  * Подготовка SSL соединения
  */
 def prepareSSLConnection() {
-    def context = SSLContext.getInstance('SSL')
-    def tks = KeyStore.getInstance(KeyStore.defaultType);
-    def tmf = TrustManagerFactory.getInstance('SunX509')
-    new File(PATH).withInputStream { stream ->
-        tks.load(stream, PASSWORD.toCharArray())
-    }
-    tmf.init(tks)
-    context.init(null, tmf.trustManagers, null)
-    HttpsURLConnection.defaultSSLSocketFactory = context.socketFactory
-    HttpsURLConnection.setDefaultHostnameVerifier(new TrustHostnameVerifiero())
+    def sc = SSLContext.getInstance("SSL")
+    def trustAll = [getAcceptedIssuers: {}, checkClientTrusted: { a, b -> }, checkServerTrusted: { a, b -> }]
+    sc.init(null, [trustAll as X509TrustManager] as TrustManager[], new SecureRandom())
+    def hostnameVerifier = [verify: { hostname, session -> true }] as HostnameVerifier
+    HttpsURLConnection.defaultSSLSocketFactory = sc.socketFactory
+    HttpsURLConnection.setDefaultHostnameVerifier(hostnameVerifier)
 }
 
 /**
@@ -674,7 +673,7 @@ def pushToMediumTableErrorText(def text, obj){
 /**
  * Запуск скрипта
  */
-def initScript(){
+def initScript(connectUrl, baseUrl, urlConnectParam){
     prepareSSLConnection()
     def connection = (HttpsURLConnection) new URL(connectUrl).openConnection()
     prepareRequestPOST(connection, urlConnectParam, true)
@@ -732,5 +731,5 @@ def initScript(){
  *  Entry point script
  */
 if (subject.state == 'Responsesent' && subject.fromAp.title == 'ГИС САДКО.ОГ'){
-    initScript()
+    initScript(connectUrl, baseUrl, urlConnectParam)
 }

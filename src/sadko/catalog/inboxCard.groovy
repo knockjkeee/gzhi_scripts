@@ -5,17 +5,27 @@ import groovy.transform.Field
 
 import javax.net.ssl.*
 import java.nio.charset.Charset
-import java.security.KeyStore
+import java.security.SecureRandom
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.util.logging.Logger
 import java.util.regex.Matcher
 
-@Field final Logger logger = Logger.getLogger("") //todo off in web
+//@Field final Logger logger = Logger.getLogger("") //todo off in web
 
-def version = 0.2
+def version = 0.1
 
+@Field final JsonSlurper jsonSlurper = new JsonSlurper()
+@Field final String DATE_FORMAT = "dd.MM.yyyy"
+@Field final String DATE_TIME_FORMAT = "dd.MM.yyyy HH:mm"
+@Field final String LOG_PREFIX = "[САДКО: Inbox обращения] "
+@Field final def SECRET = "X-Secret: d98cb729b0b1a32186379f061d1bf051d87c3b45"
+@Field final def TOKEN = "Authorization: Token 935721f39df2623052614e726d02c03f196d9b36"
+
+
+final String baseUrl = utils.get('root', [:]).urlSadko + "api/ExchangeGzi/"
+final String connectUrl = utils.get('root', [:]).urlSadko + "connect/token"
+final String urlConnectParam = utils.get('root', [:]).authSadko
 
 /**
  * Перечисление типов обращений от Садко
@@ -395,16 +405,12 @@ class TrustHostnameVerifierInbox implements HostnameVerifier {
  * Подготовка SSL соединения
  */
 def prepareSSLConnection() {
-    def context = SSLContext.getInstance('SSL')
-    def tks = KeyStore.getInstance(KeyStore.defaultType);
-    def tmf = TrustManagerFactory.getInstance('SunX509')
-    new File(PATH).withInputStream { stream ->
-        tks.load(stream, PASSWORD.toCharArray())
-    }
-    tmf.init(tks)
-    context.init(null, tmf.trustManagers, null)
-    HttpsURLConnection.defaultSSLSocketFactory = context.socketFactory
-    HttpsURLConnection.setDefaultHostnameVerifier(new TrustHostnameVerifierInbox())
+    def sc = SSLContext.getInstance("SSL")
+    def trustAll = [getAcceptedIssuers: {}, checkClientTrusted: { a, b -> }, checkServerTrusted: { a, b -> }]
+    sc.init(null, [trustAll as X509TrustManager] as TrustManager[], new SecureRandom())
+    def hostnameVerifier = [verify: { hostname, session -> true }] as HostnameVerifier
+    HttpsURLConnection.defaultSSLSocketFactory = sc.socketFactory
+    HttpsURLConnection.setDefaultHostnameVerifier(hostnameVerifier)
 }
 
 /**
@@ -448,7 +454,7 @@ def checkAddressByDadata(String address, int index ) {
 /**
  * Проверка необработанных запросов
  */
-List loadInboxData(String token) {
+List loadInboxData(String token, baseUrl) {
     def response = prepareConnectWithToken(baseUrl + "Inbox", token)
     List<Inbox> result = new ArrayList<>();
     if (response.responseCode == 200) {
@@ -792,7 +798,7 @@ if (connection.responseCode == 200) {
     ConnectSADKO connect = jsonSlurper.parseText(connection.inputStream.text) as ConnectSADKO
     if (connect.access_token != null) {
         def authorization = connect.token_type + " " + connect.access_token
-        def data = loadInboxData(authorization)
+        def data = loadInboxData(authorization, baseUrl)
         def urlFields = MappingTypeUrl.getMapFields()
         def guidList = []
         data?.each { inbox ->
@@ -806,6 +812,7 @@ if (connection.responseCode == 200) {
                 }
             }
         }
+        return guidList.toString()
         def con = prepareConnectWithToken(baseUrl + 'InboxProcessingConfirmation', authorization)
         prepareRequestPOST(con, guidList.toString())
         if (con.responseCode == 200){

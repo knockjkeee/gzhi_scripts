@@ -5,14 +5,18 @@ import groovy.transform.Field
 
 import javax.net.ssl.*
 import java.nio.charset.Charset
-import java.security.KeyStore
+import java.security.SecureRandom
 import java.util.logging.Logger
 
 @Field final Logger logger = Logger.getLogger("") //todo off in web
 
 @Field final JsonSlurper jsonSlurper = new JsonSlurper()
+@Field final String LOG_PREFIX = "[САДКО: синхронизации справочников] "
+@Field final String SADCO_CATALOG = "SadkoCatalog" + '$'
 
-
+final String baseUrl = utils.get('root', [:]).urlSadko + "api/Dir/"
+final String connectUrl = utils.get('root', [:]).urlSadko + "connect/token"
+final String urlConnectParam = utils.get('root', [:]).authSadko
 
 
 class GetAddControlMeasuresData {
@@ -414,16 +418,12 @@ class ConnectSADKOc {
  * Подготовка SSL соединения
  */
 def prepareSSLConnection() {
-    def context = SSLContext.getInstance('SSL')
-    def tks = KeyStore.getInstance(KeyStore.defaultType);
-    def tmf = TrustManagerFactory.getInstance('SunX509')
-    new File(PATH).withInputStream { stream ->
-        tks.load(stream, PASSWORD.toCharArray())
-    }
-    tmf.init(tks)
-    context.init(null, tmf.trustManagers, null)
-    HttpsURLConnection.defaultSSLSocketFactory = context.socketFactory
-    HttpsURLConnection.setDefaultHostnameVerifier(new TrustHostnameVerifier())
+    def sc = SSLContext.getInstance("SSL")
+    def trustAll = [getAcceptedIssuers: {}, checkClientTrusted: { a, b -> }, checkServerTrusted: { a, b -> }]
+    sc.init(null, [trustAll as X509TrustManager] as TrustManager[], new SecureRandom())
+    def hostnameVerifier = [verify: { hostname, session -> true }] as HostnameVerifier
+    HttpsURLConnection.defaultSSLSocketFactory = sc.socketFactory
+    HttpsURLConnection.setDefaultHostnameVerifier(hostnameVerifier)
 }
 
 /**
@@ -510,7 +510,7 @@ def parseData(String response, Catalog item) {
 /**
  * Загрука каталогов от Садко
  */
-def loadCatalog(Catalog item, token) {
+def loadCatalog(Catalog item, token, baseUrl) {
     def catalogName = item.desc + " [ " + item.name() + " ]"
     def url = baseUrl + item.name()
     def response = prepareConnectWithToken(url, token)
@@ -535,7 +535,7 @@ if (connection.responseCode == 200) {
         def authorization = connect.token_type + " " + connect.access_token
         def values = Catalog.values()
         for (def item in values) {
-            loadCatalog(item, authorization)
+            loadCatalog(item, authorization, baseUrl)
         }
         println('Load is completed')
     }else {
