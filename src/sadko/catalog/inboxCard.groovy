@@ -13,7 +13,7 @@ import java.util.regex.Matcher
 
 //@Field final Logger logger = Logger.getLogger("") //todo off in web
 
-def version = 0.1
+def version = 0.2
 
 @Field final JsonSlurper jsonSlurper = new JsonSlurper()
 @Field final String DATE_FORMAT = "dd.MM.yyyy"
@@ -493,6 +493,7 @@ InboxCard appealProcessing(String url, String token, String guid) {
     if (response.responseCode == 200) {
         def text = jsonSlurper.parseText(response.inputStream.text)
         card = text as InboxCard
+        logger.info("${LOG_PREFIX} Карточка - ${text}")
         return card
     } else {
         def errorText = "${LOG_PREFIX} Ошибка в запросе при получении обращения, код ошибки: ${response.responseCode}, guid: ${guid}, ошибка: ${response?.errorStream?.text}"
@@ -716,6 +717,7 @@ def createAppeal(iCard card){
     updateData.put('MessageNumber', card.LetterNumber)
     updateData.put('descrip', checkFieldOnNull(card.Message))
     updateData.put('fromAp', utils.find('entryPlace', [code: 'en14']))  //TODO Базовое значение -> ГИС САДКО.ОГ
+    updateData.put('fromApHidden', utils.find('entryPlace', [code: 'en14']))  //TODO Базовое значение -> ГИС САДКО.ОГ
     updateData.put('themes', utils.find('themeInv', [code: 'no']))      //TODO значения нет в САДКО
 
     updateData.put('ReceiveDateSD', card.ReceiveDate)

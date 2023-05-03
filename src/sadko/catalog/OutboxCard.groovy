@@ -12,7 +12,7 @@ import java.nio.charset.Charset
 import java.security.SecureRandom
 //@Field final Logger logger = Logger.getLogger("") //todo off in web
 
-def ver = 0.1
+def ver = 0.2
 
 @Field final JsonSlurper jsonSlurper = new JsonSlurper()
 @Field final String LOG_PREFIX = "[САДКО: выгрузка обращений] "
@@ -730,6 +730,6 @@ def initScript(connectUrl, baseUrl, urlConnectParam){
  *  Проверку на Тип обращения
  *  Entry point script
  */
-if (subject.state == 'Responsesent' && subject.fromAp.title == 'ГИС САДКО.ОГ'){
+if (subject.state == 'Responsesent' && subject.fromApHidden.title == 'ГИС САДКО.ОГ'){
     initScript(connectUrl, baseUrl, urlConnectParam)
 }
