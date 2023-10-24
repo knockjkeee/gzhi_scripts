@@ -1,5 +1,3 @@
-package sadko.catalog
-
 import groovy.json.JsonSlurper
 import groovy.transform.Field
 
@@ -10,10 +8,14 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.regex.Matcher
+import java.text.SimpleDateFormat
+import java.time.format.DateTimeFormatter
+import java.time.ZoneId
+import java.time.LocalDate
 
 //@Field final Logger logger = Logger.getLogger("") //todo off in web
 
-def version = 0.2
+def version = 0.1
 
 @Field final JsonSlurper jsonSlurper = new JsonSlurper()
 @Field final String DATE_FORMAT = "dd.MM.yyyy"
@@ -25,6 +27,7 @@ def version = 0.2
 final String baseUrl = utils.get('root', [:]).urlSadko + "api/ExchangeGzi/"
 final String connectUrl = utils.get('root', [:]).urlSadko + "connect/token"
 final String urlConnectParam = utils.get('root', [:]).authSadko
+
 
 /**
  * Перечисление типов обращений от Садко
@@ -58,6 +61,17 @@ class InboxCard {
     Resolution Resolution
     Letter Letter
     def Guid
+
+
+    @Override
+    public String toString() {
+        return "InboxCard{" +
+                "Card=" + Card +
+                ", Resolution=" + Resolution +
+                ", Letter=" + Letter +
+                ", Guid=" + Guid +
+                '}';
+    }
 }
 
 class Resol implements iCard{        // appeal
@@ -69,19 +83,19 @@ class Resol implements iCard{        // appeal
     String CitizenSurname           //[OK] Фамилия заявителя -> FirstName
     String CitizenPatronymic        //[OK] Отчество заявителя -> MiddleName
     String CitizenAddress           //[OK] Почтовый адрес заявителя -> oldaddr todo check собрать из дома [house2]+[street2]+room
-                                    // Список домов title -> номер дома
-                                    // def houses = utils.find('Location$house', [title: '2'])
-                                    // Список домов contains -> улица или метод поподания
-                                    // for(def house: houses){
-                                    //      def street = house.stid
-                                    //      try {
-                                    //            def isFind = street.title.contains("Аристово")
-                                    //          if(isFind){
-                                    //                return house.UUID
-                                    //          }
-                                    //      } catch (Exception e) {}
-                                    //   return null
-                                    //}
+    // Список домов title -> номер дома
+    // def houses = utils.find('Location$house', [title: '2'])
+    // Список домов contains -> улица или метод поподания
+    // for(def house: houses){
+    //      def street = house.stid
+    //      try {
+    //            def isFind = street.title.contains("Аристово")
+    //          if(isFind){
+    //                return house.UUID
+    //          }
+    //      } catch (Exception e) {}
+    //   return null
+    //}
     String CitizenAddressPost       //[OK] Индекс почтового адреса заявителя -> indexAddr
     String CitizenAddressAreaId     //[OK] ID района по почтовому адресу заявителя -> справочник CitizenAddArea [regionAp]
     String CitizenPhone             //[OK] Телефон заявителя -> phoneNumber
@@ -106,10 +120,46 @@ class Resol implements iCard{        // appeal
     String ConcernedCitizensNumber  // Количество заинтересованных todo New field -> ConcernedCitizensNumberSadko todo не используют
     String Message                  //[OK] Текст обращения -> descrip
     ArrayList Files                 // Файлы -> Павет документов [docpack]
-                                    // Прикрепление файла к объекту*/
-                                    // def attachedFile = utils.attachFile(obj, fileName, contentType, description, data)
-                                    // def str = new String(base64.decodeBase64())
-                                    // def attachedFile = utils.attachFile(utils.get(obj.docpack.UUID[0]), "Hello4.txt", '', "Hello", str.getBytes())
+    // Прикрепление файла к объекту*/
+    // def attachedFile = utils.attachFile(obj, fileName, contentType, description, data)
+    // def str = new String(base64.decodeBase64())
+    // def attachedFile = utils.attachFile(utils.get(obj.docpack.UUID[0]), "Hello4.txt", '', "Hello", str.getBytes())
+
+    @Override
+    public String toString() {
+        return "Resol{" +
+                "prepareAddress=" + prepareAddress +
+                ", Guid='" + Guid + '\'' +
+                ", CitizenName='" + CitizenName + '\'' +
+                ", CitizenSurname='" + CitizenSurname + '\'' +
+                ", CitizenPatronymic='" + CitizenPatronymic + '\'' +
+                ", CitizenAddress='" + CitizenAddress + '\'' +
+                ", CitizenAddressPost='" + CitizenAddressPost + '\'' +
+                ", CitizenAddressAreaId='" + CitizenAddressAreaId + '\'' +
+                ", CitizenPhone='" + CitizenPhone + '\'' +
+                ", CitizenEmail='" + CitizenEmail + '\'' +
+                ", CitizenSocialStatusId='" + CitizenSocialStatusId + '\'' +
+                ", CitizenBenefitId='" + CitizenBenefitId + '\'' +
+                ", CitizenAnswerSendTypeId='" + CitizenAnswerSendTypeId + '\'' +
+                ", LetterTypeId='" + LetterTypeId + '\'' +
+                ", DocumentTypeId='" + DocumentTypeId + '\'' +
+                ", CorrespondentId='" + CorrespondentId + '\'' +
+                ", LetterNumber='" + LetterNumber + '\'' +
+                ", ControlOrgSendDate='" + ControlOrgSendDate + '\'' +
+                ", ReceiveDate='" + ReceiveDate + '\'' +
+                ", DeliveryTypeId='" + DeliveryTypeId + '\'' +
+                ", ConsiderationFormId='" + ConsiderationFormId + '\'' +
+                ", ReceivedFrom='" + ReceivedFrom + '\'' +
+                ", RegistrationNumber='" + RegistrationNumber + '\'' +
+                ", RegistrationDate='" + RegistrationDate + '\'' +
+                ", PreviousCardsCount='" + PreviousCardsCount + '\'' +
+                ", DocSheetNumber='" + DocSheetNumber + '\'' +
+                ", DocCopyNumber='" + DocCopyNumber + '\'' +
+                ", ConcernedCitizensNumber='" + ConcernedCitizensNumber + '\'' +
+                ", Message='" + Message + '\'' +
+                ", Files='" + Files.size() + '\'' +
+                '}';
+    }
 }
 
 class Letter implements iCard{
@@ -118,19 +168,19 @@ class Letter implements iCard{
     String CitizenSurname           // Фамилия заявителя -> FirstName
     String CitizenPatronymic        // Отчество заявителя -> MiddleName
     String CitizenAddress           // Почтовый адрес заявителя -> oldaddr todo check собрать из дома [house2]+[street2]+room
-                                    // Список домов title -> номер дома
-                                    // def houses = utils.find('Location$house', [title: '2'])
-                                    // Список домов contains -> улица или метод поподания
-                                    // for(def house: houses){
-                                    //      def street = house.stid
-                                    //      try {
-                                    //            def isFind = street.title.contains("Аристово")
-                                    //          if(isFind){
-                                    //                return house.UUID
-                                    //          }
-                                    //      } catch (Exception e) {}
-                                    //   return null
-                                    //}
+    // Список домов title -> номер дома
+    // def houses = utils.find('Location$house', [title: '2'])
+    // Список домов contains -> улица или метод поподания
+    // for(def house: houses){
+    //      def street = house.stid
+    //      try {
+    //            def isFind = street.title.contains("Аристово")
+    //          if(isFind){
+    //                return house.UUID
+    //          }
+    //      } catch (Exception e) {}
+    //   return null
+    //}
     String CitizenAddressPost       // Индекс почтового адреса заявителя -> indexAddr
     String CitizenSocialStatusId    // ID социальный статус гражданина -> справочник CitizenSocStat todo не используют
     String CitizenAnswerSendTypeId  // Желаемый способ ответа гражданину -> спарвочник CitizenAnSeTy [ansType]
@@ -141,10 +191,32 @@ class Letter implements iCard{
     String DeliveryTypeId           // Тип доставки -> справочник DeliveryTypes [deliveryType]
     String Message                  // Текст обращения -> descrip
     ArrayList Files                 // Файлы -> Павет документов [docpack]
-                                    // Прикрепление файла к объекту*/
-                                    // def attachedFile = utils.attachFile(obj, fileName, contentType, description, data)
-                                    // def str = new String(base64.decodeBase64())
-                                    // def attachedFile = utils.attachFile(utils.get(obj.docpack.UUID[0]), "Hello4.txt", '', "Hello", str.getBytes())
+    // Прикрепление файла к объекту*/
+    // def attachedFile = utils.attachFile(obj, fileName, contentType, description, data)
+    // def str = new String(base64.decodeBase64())
+    // def attachedFile = utils.attachFile(utils.get(obj.docpack.UUID[0]), "Hello4.txt", '', "Hello", str.getBytes())
+
+
+    @Override
+    public String toString() {
+        return "Letter{" +
+                "prepareAddress=" + prepareAddress +
+                ", CitizenName='" + CitizenName + '\'' +
+                ", CitizenSurname='" + CitizenSurname + '\'' +
+                ", CitizenPatronymic='" + CitizenPatronymic + '\'' +
+                ", CitizenAddress='" + CitizenAddress + '\'' +
+                ", CitizenAddressPost='" + CitizenAddressPost + '\'' +
+                ", CitizenSocialStatusId='" + CitizenSocialStatusId + '\'' +
+                ", CitizenAnswerSendTypeId='" + CitizenAnswerSendTypeId + '\'' +
+                ", CitizenPhone='" + CitizenPhone + '\'' +
+                ", CitizenEmail='" + CitizenEmail + '\'' +
+                ", LetterNumber='" + LetterNumber + '\'' +
+                ", ReceiveDate='" + ReceiveDate + '\'' +
+                ", DeliveryTypeId='" + DeliveryTypeId + '\'' +
+                ", Message='" + Message + '\'' +
+                ", Files=" + Files.size() +
+                '}';
+    }
 }
 
 class Resolution {                  // appeal -> resolution
@@ -157,6 +229,22 @@ class Resolution {                  // appeal -> resolution
     String ControlDate              // Дата контроля todo New field -> ControlDateSadko
     ArrayList Themes                // Список тем вопросов todo ??????
     ArrayList Files                 // Список файлов       todo ??????
+
+
+    @Override
+    public String toString() {
+        return "Resolution{" +
+                "Guid='" + Guid + '\'' +
+                ", CreatedTime='" + CreatedTime + '\'' +
+                ", Author=" + Author +
+                ", Executor=" + Executor +
+                ", DecisionId='" + DecisionId + '\'' +
+                ", ResolutionText='" + ResolutionText + '\'' +
+                ", ControlDate='" + ControlDate + '\'' +
+                ", Themes=" + Themes +
+                ", Files=" + Files +
+                '}';
+    }
 }
 
 class User {
@@ -165,18 +253,49 @@ class User {
     String FirstName
     String MiddleName
     String FIO
+
+
+    @Override
+    public String toString() {
+        return "User{" +
+                "Guid='" + Guid + '\'' +
+                ", LastName='" + LastName + '\'' +
+                ", FirstName='" + FirstName + '\'' +
+                ", MiddleName='" + MiddleName + '\'' +
+                ", FIO='" + FIO + '\'' +
+                '}';
+    }
 }
 
 class Theme {
     String Code                     // Код по тематическому классификатору обращений
     String Name                     // Название вопроса
     String Annotation               // Анотация к вопросу
+
+    @Override
+    public String toString() {
+        return "Theme{" +
+                "Code='" + Code + '\'' +
+                ", Name='" + Name + '\'' +
+                ", Annotation='" + Annotation + '\'' +
+                '}';
+    }
 }
 
 class FileData {
     String Name                     // Имя файла
     String Guid                     // Уникальный идентификатор файла
     String Data                     // Закодированное в строку base64 содержимое файла
+
+
+    @Override
+    public String toString() {
+        return "FileData{" +
+                "Name='" + Name + '\'' +
+                ", Guid='" + Guid + '\'' +
+                ", Data='" + Data + '\'' +
+                '}';
+    }
 }
 
 /**
@@ -187,6 +306,17 @@ class ConnectSADKO {
     int expires_in
     String token_type
     String scope
+
+
+    @Override
+    public String toString() {
+        return "ConnectSADKO{" +
+                "access_token='" + access_token + '\'' +
+                ", expires_in=" + expires_in +
+                ", token_type='" + token_type + '\'' +
+                ", scope='" + scope + '\'' +
+                '}';
+    }
 }
 
 class Inbox {
@@ -198,6 +328,16 @@ class Inbox {
         Guid = guid
         Created = created
         Type = type
+    }
+
+
+    @Override
+    public String toString() {
+        return "Inbox{" +
+                "Guid='" + Guid + '\'' +
+                ", Created='" + Created + '\'' +
+                ", Type='" + Type + '\'' +
+                '}';
     }
 }
 
@@ -492,7 +632,8 @@ InboxCard appealProcessing(String url, String token, String guid) {
     if (response.responseCode == 200) {
         def text = jsonSlurper.parseText(response.inputStream.text)
         card = text as InboxCard
-        logger.info("${LOG_PREFIX} Карточка - ${text}")
+        //logger.info("${LOG_PREFIX} Полученна Карточка - ${text}")
+        logger.info("${LOG_PREFIX} Обработанная Карточка - ${card.toString()}")
         return card
     } else {
         def errorText = "${LOG_PREFIX} Ошибка в запросе при получении обращения, код ошибки: ${response.responseCode}, guid: ${guid}, ошибка: ${response?.errorStream?.text}"
@@ -536,7 +677,7 @@ def getCatalogItem(String catalogName, String directoryName, String id){
  * Проверка на null
  */
 String checkFieldOnNull(String item){
-    return item == null ? "Текст отсутсвует" : item
+    return item == null || item.size() == 0 ? "Текст отсутствует" : item
 }
 
 /**
@@ -722,7 +863,7 @@ def createAppeal(iCard card){
     updateData.put('MessageNumber', card.LetterNumber)
     updateData.put('descrip', checkFieldOnNull(card.Message))
     updateData.put('fromAp', utils.find('entryPlace', [code: 'en14']))  //TODO Базовое значение -> ГИС САДКО.ОГ
-    updateData.put('fromApHidden', utils.find('entryPlace', [code: 'en14']))  //TODO Базовое значение -> ГИС САДКО.ОГ
+    updateData.put('fromApHidden', utils.find('entryPlace', [code: 'en14'])) //TODO Базовое значение -> ГИС САДКО.ОГ
     updateData.put('themes', utils.find('themeInv', [code: 'no']))      //TODO значения нет в САДКО
 
     updateData.put('ReceiveDateSD', card.ReceiveDate)
@@ -794,6 +935,70 @@ def pushToMediumTable(iCard card){
 }
 
 
+private static String formatDate(Date date, boolean zoned) {
+    if (zoned) {
+        def dtz = ZoneId.systemDefault().toString()
+        if (dtz == 'Etc/UTC') {
+            dtz = 'Europe/Moscow'
+        }
+        return DateTimeFormatter.ISO_OFFSET_DATE.withZone(ZoneId.of( dtz )).format(date.toInstant())
+        //return DateTimeFormatter.ISO_OFFSET_DATE.withZone(ZoneId.systemDefault()).format(date.toInstant())
+    } else {
+        return new SimpleDateFormat("yyyy-MM-dd").format(date)
+    }
+}
+
+
+// Функция проверка даты на нерабочий день
+//  Входящий параметр: curDate - проверяемая дата
+//  Возвращаемое значение:
+//      true - выходной
+//      false - рабочий
+private boolean isDayOff (Date curDate) {
+    //Date curDate = new Date()
+    Integer[] _numDayOff = [6,7]		// нерабочие дни недели
+    String exclusionsClass = 'servicetime$67903'      // uuid класса обслуживания
+    boolean dayOff = false
+    String _dateFormat = 'yyyy-MM-dd'
+
+    try {
+        // Коррекция смещения по временной зоне
+        String _curDate = formatDate(curDate, false)
+        curDate = Date.parse( _dateFormat, _curDate)
+
+        // Проверка на номер дня недели
+        Integer _curDay = api.date.getNumberOfDayOfWeek(curDate)   // функция из NSD
+        //Integer _curDay = 5     // заглушка для проверки
+        dayOff = (_curDay in _numDayOff)? true : false
+
+        //Проверка на дни исключения
+        if (!dayOff) {
+            def _exclday = api.serviceTime.getExclusions(exclusionsClass).exclusionDate   // функция из NSD
+            //def _exclday = [new Date().previous() , new Date(), new Date().next() ]     // массив для проверки
+
+            for(def it : _exclday) {
+                if (_curDate == it.format(_dateFormat)) {
+                    dayOff = true
+                    break
+                }
+            }
+        }
+    } catch (IOException e) {
+        def msg = 'Ошибка в функции exportAppeal.isDayOff (проверка на рабочий день) ' + e.getMessage()
+        //println(msg)
+        logger.error(msg)
+    }
+
+    return dayOff
+}
+
+
+if (isDayOff( new Date() )) {
+    logger.info("${LOG_PREFIX} Сегодня день не рабочий. Cкрипт exportAppeal прерван")
+    return
+}
+
+
 /**
  * Entry point script
  */
@@ -817,9 +1022,9 @@ if (connection.responseCode == 200) {
                     guidList.add("\"" + inbox.Guid + "\"")
                     logger.info("${LOG_PREFIX} Обращение, c атрибутами: тип - ${inbox.Type}, guid - ${inbox.Guid}, загружено")
                 }
+
             }
         }
-        return guidList.toString()
         def con = prepareConnectWithToken(baseUrl + 'InboxProcessingConfirmation', authorization)
         prepareRequestPOST(con, guidList.toString())
         if (con.responseCode == 200){
