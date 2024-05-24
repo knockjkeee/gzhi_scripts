@@ -21,8 +21,7 @@ def version = 0.1
 @Field final String DATE_FORMAT = "dd.MM.yyyy"
 @Field final String DATE_TIME_FORMAT = "dd.MM.yyyy HH:mm"
 @Field final String LOG_PREFIX = "[САДКО: Inbox обращения] "
-@Field final def SECRET = "X-Secret: d98cb729b0b1a32186379f061d1bf051d87c3b45"
-@Field final def TOKEN = "Authorization: Token 935721f39df2623052614e726d02c03f196d9b36"
+
 
 
 final String baseUrl = utils.get('root', [:]).urlSadko + "api/ExchangeGzi/"
