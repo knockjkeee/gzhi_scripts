@@ -838,7 +838,7 @@ def createAppeal(iCard card){
         }
     }
     updateData.put('LastName', card.CitizenName)
-    updateData.put('FirstName', card.CitizenSurname)
+    updateData.put('FirstName', (card.CitizenSurname == null || card.CitizenSurname.isEmpty()) ? "Нет данных" :card.CitizenSurname)
     updateData.put('MiddleName', card.CitizenPatronymic)
     updateData.put('phoneNumber', card.CitizenPhone)
     updateData.put('email', card.CitizenEmail)
